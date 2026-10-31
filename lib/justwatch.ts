@@ -1,4 +1,5 @@
 import "server-only";
+import { guessLanguage } from "./language";
 import { COUNTRY, PROVIDERS, PROVIDER_IDS, isProviderId, type ProviderId } from "./providers";
 
 // JustWatch's GraphQL API is unofficial and can change without notice. Every
@@ -32,6 +33,9 @@ export type Title = {
   runtime: number | null;
   certification: string | null;
   tmdbId: string | null;
+  imdbId: string | null;
+  /** ISO 639-1 original language, null when unknown */
+  language: string | null;
   /** One offer per provider, best quality first */
   offers: Offer[];
 };
@@ -54,6 +58,7 @@ export type TitleQuery = {
   sort?: Sort;
   search?: string;
   minImdbVotes?: number;
+  minImdbScore?: number;
   first?: number;
   after?: string;
 };
@@ -65,18 +70,18 @@ export type Genre = { id: string; name: string };
 // --- Raw GraphQL ------------------------------------------------------------
 
 const OFFER_FIELDS = `
-  id monetizationType presentationType standardWebURL
+  id monetizationType presentationType standardWebURL audioLanguages
   package { packageId shortName }
 `;
 
 const TITLE_FIELDS = `
   id objectType
   content(country: $country, language: "en") {
-    title originalReleaseYear posterUrl shortDescription runtime ageCertification
+    title originalTitle originalReleaseYear posterUrl shortDescription runtime ageCertification productionCountries
     backdrops { backdropUrl }
     genres { shortName }
     scoring { imdbScore imdbVotes }
-    externalIds { tmdbId }
+    externalIds { tmdbId imdbId }
   }
   offers(country: $country, platform: WEB, filter: { monetizationTypes: [FLATRATE], packages: $packages }) {
     ${OFFER_FIELDS}
@@ -105,6 +110,18 @@ const DETAIL_QUERY = `
   }
 `;
 
+const SIMILAR_QUERY = `
+  query Similar($id: ID!, $country: Country!, $packages: [String!]!, $limit: Int!) {
+    node(id: $id) {
+      ... on MovieOrShow {
+        similarTitles(country: $country, limit: $limit, filter: { packages: $packages, monetizationTypes: [FLATRATE] }) {
+          ${TITLE_FIELDS}
+        }
+      }
+    }
+  }
+`;
+
 const GENRES_QUERY = `query Genres { genres { shortName translation(language: "en") } }`;
 
 type RawOffer = {
@@ -112,6 +129,7 @@ type RawOffer = {
   monetizationType: string;
   presentationType: string;
   standardWebURL: string | null;
+  audioLanguages?: string[] | null;
   package: { packageId: number; shortName: string };
 };
 
@@ -121,6 +139,8 @@ type RawTitle = {
   totalSeasonCount?: number;
   content: {
     title: string;
+    originalTitle?: string | null;
+    productionCountries?: string[] | null;
     originalReleaseYear: number | null;
     posterUrl: string | null;
     shortDescription: string | null;
@@ -129,7 +149,7 @@ type RawTitle = {
     backdrops: { backdropUrl: string }[] | null;
     genres: { shortName: string }[] | null;
     scoring: { imdbScore: number | null; imdbVotes: number | null } | null;
-    externalIds: { tmdbId: string | null } | null;
+    externalIds: { tmdbId: string | null; imdbId: string | null } | null;
     credits?: { role: string; name: string; characterName: string | null }[];
   };
   offers: RawOffer[] | null;
@@ -174,6 +194,9 @@ function normaliseOffers(raw: RawOffer[] | null): Offer[] {
 
 function normaliseTitle(raw: RawTitle): Title {
   const c = raw.content;
+  const audio = (raw.offers ?? [])
+    .filter((o) => o.monetizationType === "FLATRATE" && ALLOWED_PACKAGE_IDS.has(o.package.packageId))
+    .flatMap((o) => o.audioLanguages ?? []);
   return {
     id: raw.id,
     kind: raw.objectType === "SHOW" ? "show" : "movie",
@@ -188,6 +211,12 @@ function normaliseTitle(raw: RawTitle): Title {
     runtime: c.runtime || null,
     certification: c.ageCertification || null,
     tmdbId: c.externalIds?.tmdbId ?? null,
+    imdbId: c.externalIds?.imdbId ?? null,
+    language: guessLanguage({
+      originalTitle: c.originalTitle,
+      productionCountries: c.productionCountries,
+      audioLanguages: audio,
+    }),
     offers: normaliseOffers(raw.offers),
   };
 }
@@ -211,6 +240,7 @@ export async function fetchTitles(q: TitleQuery): Promise<Page> {
   // Without a vote floor, IMDb sorting surfaces obscure 10/10 titles.
   const minVotes = q.minImdbVotes ?? (q.sort === "imdb" ? 10_000 : undefined);
   if (minVotes) filter.imdbVotes = { min: minVotes };
+  if (q.minImdbScore) filter.imdbScore = { min: q.minImdbScore };
 
   const data = await gql<{
     popularTitles: {
@@ -249,6 +279,15 @@ export async function fetchTitle(id: string): Promise<TitleDetail | null> {
     seasons: raw.totalSeasonCount ?? null,
     backdrops: (raw.content.backdrops ?? []).map((b) => b.backdropUrl),
   };
+}
+
+export async function fetchSimilar(id: string, limit = 24): Promise<Title[]> {
+  const data = await gql<{ node: { similarTitles?: RawTitle[] } | null }>(SIMILAR_QUERY, {
+    id,
+    packages: PROVIDER_IDS,
+    limit,
+  });
+  return (data.node?.similarTitles ?? []).map(normaliseTitle).filter((t) => t.offers.length > 0);
 }
 
 export async function fetchGenres(): Promise<Genre[]> {

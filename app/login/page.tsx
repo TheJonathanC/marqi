@@ -7,6 +7,7 @@ const ERRORS: Record<string, string> = {
   denied: "That GitHub account isn't on the guest list.",
   state: "The sign-in link expired. Try again.",
   github: "GitHub didn't answer. Try again in a moment.",
+  server: "Sign-in failed on the server. Check SESSION_SECRET and DATABASE_URL, and the logs.",
   config: "Sign-in isn't configured yet. Set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET.",
 };
 

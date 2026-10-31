@@ -33,6 +33,8 @@ export async function GET(_request: NextRequest, ctx: RouteContext<"/go/[offerId
       backdrop: title.backdrop,
       provider: parsed.provider,
       offerId: offer?.id ?? offerId,
+      genres: title.genres,
+      language: title.language,
     }).catch((err) => console.error("[marqi] failed to record click", err));
   }
 

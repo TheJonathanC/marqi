@@ -32,6 +32,37 @@ const SCHEMA = [
     primary key (user_id, title_id)
   )`,
   `create index if not exists watch_entries_recent on watch_entries (user_id, clicked_at desc)`,
+  // Taste signals for recommendations, added after the first release.
+  `alter table watch_entries add column if not exists genres text[] not null default '{}'`,
+  `alter table watch_entries add column if not exists language text`,
+  `create table if not exists user_prefs (
+    user_id text primary key references users(id) on delete cascade,
+    excluded_languages text[] not null default '{}',
+    discover boolean not null default false,
+    updated_at timestamptz not null default now()
+  )`,
+  `create table if not exists watchlist (
+    user_id text not null references users(id) on delete cascade,
+    title_id text not null,
+    kind text not null,
+    title text not null,
+    poster text,
+    backdrop text,
+    year int,
+    imdb_score real,
+    genres text[] not null default '{}',
+    language text,
+    added_at timestamptz not null default now(),
+    primary key (user_id, title_id)
+  )`,
+  `create table if not exists hidden_titles (
+    user_id text not null references users(id) on delete cascade,
+    title_id text not null,
+    title text not null,
+    genres text[] not null default '{}',
+    created_at timestamptz not null default now(),
+    primary key (user_id, title_id)
+  )`,
 ];
 
 // Route handlers and server actions are bundled separately, so a module-level
@@ -54,7 +85,7 @@ async function connect(): Promise<Db | null> {
   if (url) {
     const { default: postgres } = await import("postgres");
     // prepare: false keeps this compatible with pooled (PgBouncer) URLs.
-    const sql = postgres(url, { max: 1, prepare: false, idle_timeout: 20 });
+    const sql = postgres(url, { max: 1, prepare: false, idle_timeout: 20, onnotice: () => {} });
     db = { query: (text, params = []) => sql.unsafe(text, params as never[]) as never };
   } else if (process.env.NODE_ENV !== "production") {
     const { PGlite } = await import("@electric-sql/pglite");

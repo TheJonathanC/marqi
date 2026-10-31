@@ -17,6 +17,6 @@ export function isProviderId(value: unknown): value is ProviderId {
 
 export const COUNTRY = "IN";
 
-// How long the Marqi tab must stay hidden after a Watch click before the
-// title is promoted to Continue Watching.
-export const DWELL_MINUTES = 10;
+// Coming back to Marqi within this long after a Watch click counts as a peek,
+// and the title drops out of Continue Watching.
+export const BOUNCE_MINUTES = 2;

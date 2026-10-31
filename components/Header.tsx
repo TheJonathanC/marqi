@@ -13,6 +13,7 @@ export function Header() {
         <Link href="/browse">Browse</Link>
         <Link href="/browse?kind=movie">Films</Link>
         <Link href="/browse?kind=show">Series</Link>
+        <Link href="/list">My List</Link>
       </nav>
       <form action="/search" className="search" role="search">
         <label htmlFor="q" className="visually-hidden">
@@ -38,6 +39,9 @@ async function UserMenu() {
         <img src={user.avatarUrl} alt="" width={28} height={28} />
       )}
       <span>{user.name ?? user.login}</span>
+      <Link href="/settings" className="settings-link" aria-label="Settings" title="Settings">
+        ⚙
+      </Link>
       <button type="submit">Sign out</button>
     </form>
   );

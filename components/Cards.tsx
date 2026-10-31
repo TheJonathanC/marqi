@@ -1,9 +1,32 @@
 import Link from "next/link";
-import type { Title } from "@/lib/justwatch";
+import type { ReactNode } from "react";
+import type { Offer } from "@/lib/justwatch";
+import { languageName } from "@/lib/language";
 import { PROVIDERS } from "@/lib/providers";
 import { Poster } from "./Art";
 
-export function PosterCard({ title, eager }: { title: Title; eager?: boolean }) {
+/** What a poster card needs; satisfied by catalog titles and My List entries. */
+export type CardTitle = {
+  id: string;
+  title: string;
+  poster: string | null;
+  year: number | null;
+  imdbScore: number | null;
+  language: string | null;
+  offers?: Offer[];
+};
+
+export function ImdbChip({ score }: { score: number | null }) {
+  if (!score) return null;
+  return (
+    <span className="imdb-chip" aria-label={`IMDb ${score.toFixed(1)}`}>
+      <b>IMDb</b> {score.toFixed(1)}
+    </span>
+  );
+}
+
+export function PosterCard({ title, eager }: { title: CardTitle; eager?: boolean }) {
+  const language = languageName(title.language);
   return (
     <Link href={`/title/${title.id}`} className="card" data-card>
       <div className="card-poster">
@@ -12,25 +35,37 @@ export function PosterCard({ title, eager }: { title: Title; eager?: boolean }) 
         ) : (
           <span className="no-art">{title.title}</span>
         )}
+        <ImdbChip score={title.imdbScore} />
       </div>
       <div className="card-title">{title.title}</div>
       <div className="card-sub">
         {!!title.year && <span>{title.year}</span>}
-        {!!title.imdbScore && <span className="imdb">★ {title.imdbScore.toFixed(1)}</span>}
-        <ProviderDots title={title} />
+        {language && <span>{language}</span>}
+        {title.offers && <ProviderDots offers={title.offers} />}
       </div>
     </Link>
   );
 }
 
-export function ProviderDots({ title }: { title: Title }) {
-  const names = title.offers.map((o) => PROVIDERS[o.provider].name).join(", ");
+export function ProviderDots({ offers }: { offers: Offer[] }) {
+  const names = offers.map((o) => PROVIDERS[o.provider].name).join(", ");
   return (
     <span className="badges" title={names} aria-label={`On ${names}`}>
-      {title.offers.map((o) => (
+      {offers.map((o) => (
         <span key={o.provider} className="badge" data-p={o.provider} />
       ))}
     </span>
+  );
+}
+
+export function RowHead({ heading, href, children }: { heading: string; href?: string; children?: ReactNode }) {
+  return (
+    <div className="row-head">
+      <h2>{heading}</h2>
+      <span className="deco" aria-hidden />
+      {children}
+      {href && <Link href={href}>See all →</Link>}
+    </div>
   );
 }
 
@@ -39,20 +74,20 @@ export function Row({
   titles,
   href,
   eager,
+  note,
 }: {
   heading: string;
-  titles: Title[];
+  titles: CardTitle[];
   href?: string;
   eager?: boolean;
+  note?: ReactNode;
 }) {
   if (titles.length === 0) return null;
   return (
     <section aria-label={heading}>
-      <div className="row-head">
-        <h2>{heading}</h2>
-        <span className="deco" aria-hidden />
-        {href && <Link href={href}>See all →</Link>}
-      </div>
+      <RowHead heading={heading} href={href}>
+        {note && <span className="row-note">{note}</span>}
+      </RowHead>
       <div className="row-track" data-row>
         {titles.map((t, i) => (
           <PosterCard key={t.id} title={t} eager={eager && i < 8} />
@@ -62,7 +97,7 @@ export function Row({
   );
 }
 
-export function Grid({ titles }: { titles: Title[] }) {
+export function Grid({ titles }: { titles: CardTitle[] }) {
   return (
     <div className="grid" data-row>
       {titles.map((t) => (

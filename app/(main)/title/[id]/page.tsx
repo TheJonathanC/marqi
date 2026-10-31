@@ -1,10 +1,13 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { addToListAction, hideTitleAction, removeFromListAction, unhideTitleAction } from "@/app/actions";
 import { Backdrop } from "@/components/Art";
+import { Row } from "@/components/Cards";
 import { Meta } from "@/components/Meta";
 import { Ticket } from "@/components/Ticket";
-import { getTitle } from "@/lib/catalog";
+import { getSimilar, getTitle } from "@/lib/catalog";
 import { isTitleId } from "@/lib/justwatch";
+import { forRow, getProfile } from "@/lib/personal";
 
 export async function generateMetadata({ params }: PageProps<"/title/[id]">) {
   const { id } = await params;
@@ -14,7 +17,13 @@ export async function generateMetadata({ params }: PageProps<"/title/[id]">) {
 
 export default function TitlePage({ params }: PageProps<"/title/[id]">) {
   return (
-    <Suspense fallback={<div className="detail"><div className="hero" /></div>}>
+    <Suspense
+      fallback={
+        <div className="detail">
+          <div className="hero" />
+        </div>
+      }
+    >
       <Detail params={params} />
     </Suspense>
   );
@@ -38,7 +47,7 @@ async function Detail({ params }: Pick<PageProps<"/title/[id]">, "params">) {
           <div className="eyebrow">{title.kind === "show" ? "Serial" : "Feature presentation"}</div>
           <h1>{title.title}</h1>
           {title.extras?.tagline && <p className="tagline">{title.extras.tagline}</p>}
-          <Meta title={title} seasons={title.seasons} />
+          <Meta title={title} seasons={title.seasons} showVotes />
           {overview && <p className="synopsis">{overview}</p>}
           {title.offers.length ? (
             <div className="actions">
@@ -49,6 +58,9 @@ async function Detail({ params }: Pick<PageProps<"/title/[id]">, "params">) {
           ) : (
             <p className="unavailable">Not currently showing on Prime Video, JioHotstar or Apple TV in India.</p>
           )}
+          <Suspense fallback={<div className="title-tools" />}>
+            <PersonalTools titleId={title.id} />
+          </Suspense>
         </div>
       </section>
 
@@ -75,6 +87,42 @@ async function Detail({ params }: Pick<PageProps<"/title/[id]">, "params">) {
           )}
         </section>
       )}
+
+      <div className="rows">
+        <Suspense fallback={null}>
+          <MoreLikeThis titleId={title.id} />
+        </Suspense>
+      </div>
     </article>
   );
+}
+
+/** My List and Not interested, which depend on who's looking. */
+async function PersonalTools({ titleId }: { titleId: string }) {
+  const profile = await getProfile();
+  if (!profile) return null;
+  const listed = profile.watchlist.some((w) => w.titleId === titleId);
+  const hidden = profile.hidden.some((h) => h.titleId === titleId);
+
+  return (
+    <div className="title-tools">
+      <form action={listed ? removeFromListAction : addToListAction}>
+        <input type="hidden" name="titleId" value={titleId} />
+        <button type="submit" className="tool-btn" aria-pressed={listed}>
+          {listed ? "✓ In My List" : "+ My List"}
+        </button>
+      </form>
+      <form action={hidden ? unhideTitleAction : hideTitleAction}>
+        <input type="hidden" name="titleId" value={titleId} />
+        <button type="submit" className="tool-btn subtle" aria-pressed={hidden}>
+          {hidden ? "Hidden from your rows · Undo" : "Not interested"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+async function MoreLikeThis({ titleId }: { titleId: string }) {
+  const [similar, profile] = await Promise.all([getSimilar(titleId).catch(() => []), getProfile()]);
+  return <Row heading="More Like This" titles={forRow(similar, profile)} />;
 }

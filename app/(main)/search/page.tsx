@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Grid } from "@/components/Cards";
 import { getTitles } from "@/lib/catalog";
+import { getProfile, visible } from "@/lib/personal";
 
 export const metadata: Metadata = { title: "Search" };
 
@@ -26,7 +27,9 @@ async function Results({ searchParams }: Pick<PageProps<"/search">, "searchParam
     );
   }
 
-  const { titles } = await getTitles({ search: q, first: 30 });
+  const [page, profile] = await Promise.all([getTitles({ search: q, first: 30 }), getProfile()]);
+  // Search respects the language filter but still finds titles you've seen.
+  const titles = visible(page.titles, profile);
   return (
     <>
       <div className="page-head">

@@ -1,18 +1,28 @@
 import "server-only";
+import { cacheLife } from "next/cache";
 import type { Kind } from "./justwatch";
 
-// Optional enrichment. With TMDB_API_KEY set, title pages get a tagline, a
-// fuller synopsis and original-resolution backdrops. Without it, everything
-// still works off JustWatch data.
+// Optional enrichment. With TMDB_API_KEY set, every title gets an exact
+// original language (which powers the language filter), and title pages get a
+// tagline, a fuller synopsis and original-resolution backdrops. Without it,
+// everything still works off JustWatch data and a language heuristic.
 
 export type TmdbExtras = {
+  language: string | null;
   tagline: string | null;
   overview: string | null;
   /** TMDB file path such as `/abc.jpg`, see lib/images.ts */
   backdrop: string | null;
 };
 
-export async function fetchTmdbExtras(kind: Kind, tmdbId: string): Promise<TmdbExtras | null> {
+export function tmdbConfigured() {
+  return Boolean(process.env.TMDB_API_KEY);
+}
+
+export async function getTmdbExtras(kind: Kind, tmdbId: string): Promise<TmdbExtras | null> {
+  "use cache: remote";
+  cacheLife("weeks");
+
   const key = process.env.TMDB_API_KEY;
   if (!key) return null;
 
@@ -28,8 +38,14 @@ export async function fetchTmdbExtras(kind: Kind, tmdbId: string): Promise<TmdbE
       signal: AbortSignal.timeout(6_000),
     });
     if (!res.ok) return null;
-    const data = (await res.json()) as { tagline?: string; overview?: string; backdrop_path?: string | null };
+    const data = (await res.json()) as {
+      original_language?: string;
+      tagline?: string;
+      overview?: string;
+      backdrop_path?: string | null;
+    };
     return {
+      language: data.original_language || null,
       tagline: data.tagline || null,
       overview: data.overview || null,
       backdrop: data.backdrop_path || null,

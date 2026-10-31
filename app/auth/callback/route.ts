@@ -20,15 +20,22 @@ export async function GET(request: NextRequest) {
   const state = request.nextUrl.searchParams.get("state");
   if (!code || !state || state !== saved.state) return fail("state");
 
+  let user;
   try {
     const redirectUri = new URL("/auth/callback", request.url).toString();
-    const user = await exchangeCode(code, redirectUri);
-    if (!isAllowed(user.login)) return fail("denied");
+    user = await exchangeCode(code, redirectUri);
+  } catch (err) {
+    console.error("[marqi] GitHub sign-in failed", err);
+    return fail("github");
+  }
+  if (!isAllowed(user.login)) return fail("denied");
+
+  try {
     await upsertUser(user);
     await setSessionUser(user);
   } catch (err) {
-    console.error("[marqi] sign-in failed", err);
-    return fail("github");
+    console.error("[marqi] sign-in failed after GitHub", err);
+    return fail("server");
   }
 
   return NextResponse.redirect(new URL(safeNext(saved.next), request.url));

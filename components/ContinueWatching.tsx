@@ -1,32 +1,38 @@
-import { connection } from "next/server";
 import { dismissEntry, finishEntry } from "@/app/actions";
 import { PROVIDERS } from "@/lib/providers";
-import { getViewer } from "@/lib/session";
-import { listContinueWatching } from "@/lib/watch";
+import type { Profile } from "@/lib/watch";
 import { Backdrop } from "./Art";
+import { RowHead } from "./Cards";
 
-// Per-user, so it streams in behind a Suspense boundary while the cached
-// catalog rows around it render instantly.
-export async function ContinueWatching() {
-  const user = await getViewer();
-  if (!user) return null;
-  await connection();
-  const entries = await listContinueWatching(user.id).catch((err) => {
-    console.error("[marqi] continue watching unavailable", err);
-    return [];
-  });
-  if (entries.length === 0) return null;
+// Anything you've opened and not peeked-and-left, finished or removed.
+export function ContinueWatching({ profile }: { profile: Profile }) {
+  const entries = profile.history.filter((e) => e.status === "watching" || e.status === "pending").slice(0, 20);
+
+  if (entries.length === 0) {
+    return (
+      <section aria-label="Continue Watching">
+        <RowHead heading="Continue Watching" />
+        <p className="row-hint">
+          Press a <em>Watch</em> ticket and the title lands here, ready to resume. Come straight back within two
+          minutes and Marqi assumes you were only peeking.
+        </p>
+      </section>
+    );
+  }
 
   return (
     <section aria-label="Continue Watching">
-      <div className="row-head">
-        <h2>Continue Watching</h2>
-        <span className="deco" aria-hidden />
-      </div>
+      <RowHead heading="Continue Watching" />
       <div className="row-track wide" data-row>
         {entries.map((e) => (
           <div key={e.titleId} className="cw-card">
-            <a href={`/go/${encodeURIComponent(e.offerId)}`} target="_blank" rel="noopener" data-card data-watch={e.titleId}>
+            <a
+              href={`/go/${encodeURIComponent(e.offerId)}`}
+              target="_blank"
+              rel="noopener"
+              data-card
+              data-watch={e.titleId}
+            >
               <div className="cw-art">
                 <Backdrop template={e.backdrop} sizes="280px" />
               </div>
