@@ -51,7 +51,8 @@ export type ListEntry = {
   addedAt: string;
 };
 
-export type Prefs = { excludedLanguages: string[]; discover: boolean };
+/** `languages`: original languages to show; empty means all of them. */
+export type Prefs = { languages: string[]; discover: boolean };
 
 export type Profile = {
   prefs: Prefs;
@@ -179,13 +180,13 @@ export async function unhideTitle(userId: string, titleId: string) {
 export async function savePrefs(userId: string, prefs: Partial<Prefs>) {
   const db = await getDb();
   await db?.query(
-    `insert into user_prefs (user_id, excluded_languages, discover)
+    `insert into user_prefs (user_id, languages, discover)
      values ($1, coalesce(${TEXT_ARRAY(2)}, '{}'), coalesce($3, false))
      on conflict (user_id) do update set
-       excluded_languages = case when $2::text is null then user_prefs.excluded_languages else excluded.excluded_languages end,
+       languages = case when $2::text is null then user_prefs.languages else excluded.languages end,
        discover = coalesce($3, user_prefs.discover),
        updated_at = now()`,
-    [userId, prefs.excludedLanguages ? JSON.stringify(prefs.excludedLanguages) : null, prefs.discover ?? null],
+    [userId, prefs.languages ? JSON.stringify(prefs.languages) : null, prefs.discover ?? null],
   );
 }
 
@@ -194,13 +195,13 @@ export async function loadProfile(userId: string): Promise<Profile | null> {
   const db = await getDb();
   if (!db) return null;
   const [row] = await db.query<{
-    prefs: { excluded_languages: string[]; discover: boolean } | null;
+    prefs: { languages: string[]; discover: boolean } | null;
     hidden: { title_id: string; title: string; genres: string[] }[];
     watchlist: Record<string, never>[];
     history: Record<string, never>[];
   }>(
     `select
-       (select json_build_object('excluded_languages', excluded_languages, 'discover', discover)
+       (select json_build_object('languages', languages, 'discover', discover)
           from user_prefs where user_id = $1) as prefs,
        (select coalesce(json_agg(json_build_object('title_id', title_id, 'title', title, 'genres', genres)
           order by created_at desc), '[]') from hidden_titles where user_id = $1) as hidden,
@@ -210,11 +211,11 @@ export async function loadProfile(userId: string): Promise<Profile | null> {
     [userId],
   );
   const json = <T>(v: unknown): T => (typeof v === "string" ? JSON.parse(v) : v) as T;
-  const prefs = json<{ excluded_languages: string[]; discover: boolean } | null>(row.prefs);
+  const prefs = json<{ languages: string[]; discover: boolean } | null>(row.prefs);
   type Row = Record<string, string & number & string[]>;
 
   return {
-    prefs: { excludedLanguages: prefs?.excluded_languages ?? [], discover: prefs?.discover ?? false },
+    prefs: { languages: prefs?.languages ?? [], discover: prefs?.discover ?? false },
     hidden: json<{ title_id: string; title: string; genres: string[] }[]>(row.hidden).map((h) => ({
       titleId: h.title_id,
       title: h.title,

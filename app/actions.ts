@@ -99,11 +99,11 @@ export async function unhideTitleAction(formData: FormData) {
 export async function saveLanguagesAction(formData: FormData) {
   const user = await getSessionUser();
   if (!user) return;
-  const excluded = formData
-    .getAll("exclude")
+  const languages = formData
+    .getAll("language")
     .map(String)
     .filter((code) => code in LANGUAGES);
-  await savePrefs(user.id, { excludedLanguages: [...new Set(excluded)] });
+  await savePrefs(user.id, { languages: [...new Set(languages)] });
   refresh();
 }
 

@@ -44,6 +44,8 @@ const SCHEMA = [
     discover boolean not null default false,
     updated_at timestamptz not null default now()
   )`,
+  // Languages switched from "hide these" to "show only these"; excluded_languages is no longer read.
+  `alter table user_prefs add column if not exists languages text[] not null default '{}'`,
   `create table if not exists watchlist (
     user_id text not null references users(id) on delete cascade,
     title_id text not null,

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { genreAffinity, interacted, pickSeeds, rankCandidates, unexploredGenres, visible } from "./taste.ts";
 
 const profile = {
-  prefs: { excludedLanguages: ["hi"] },
+  prefs: { languages: ["en", "ml"] },
   hidden: [{ titleId: "tm9", genres: ["rma"] }],
   watchlist: [{ titleId: "ts2", title: "Silo", genres: ["scf", "drm"], addedAt: "2026-10-30T00:00:00Z" }],
   history: [
@@ -20,9 +20,14 @@ const t = (id: string, genres: string[], language: string | null = "en", imdbSco
   imdbScore,
 });
 
-test("visible drops excluded languages and hidden titles, keeps unknown language", () => {
-  const out = visible([t("a", []), t("b", [], "hi"), t("tm9", []), t("c", [], null)], profile);
-  assert.deepEqual(out.map((x) => x.id), ["a", "c"]);
+test("visible keeps chosen languages, drops hidden titles, keeps unknown language", () => {
+  const out = visible([t("a", []), t("b", [], "hi"), t("tm9", []), t("c", [], null), t("d", [], "ml")], profile);
+  assert.deepEqual(out.map((x) => x.id), ["a", "c", "d"]);
+});
+
+test("no chosen languages shows every language", () => {
+  const all = { ...profile, prefs: { languages: [] } };
+  assert.deepEqual(visible([t("a", [], "hi"), t("b", [], "ko")], all).map((x) => x.id), ["a", "b"]);
 });
 
 test("affinity favours finished and listed genres, penalises hidden and dismissed", () => {

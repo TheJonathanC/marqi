@@ -71,7 +71,7 @@ function MyListRow({ profile }: { profile: Profile }) {
 
 /** For You ⇄ Discover switch, plus a reminder of the language filter. */
 function ModeBar({ profile }: { profile: Profile }) {
-  const { discover, excludedLanguages } = profile.prefs;
+  const { discover, languages } = profile.prefs;
   return (
     <div className="mode-bar">
       <form action={setDiscoverAction} className="mode-switch" aria-label="Recommendations mode">
@@ -91,9 +91,7 @@ function ModeBar({ profile }: { profile: Profile }) {
         Mark what you&apos;ve seen
       </Link>
       <Link href="/settings" className="mode-langs">
-        {excludedLanguages.length
-          ? `Hiding ${excludedLanguages.map((l) => languageName(l)).join(", ")}`
-          : "Language filter: off"}{" "}
+        {languages.length ? `Showing ${languages.map((l) => languageName(l)).join(", ")}` : "All languages"}{" "}
         · Edit
       </Link>
     </div>

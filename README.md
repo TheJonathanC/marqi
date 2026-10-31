@@ -14,7 +14,7 @@ Marqi is the first layer: you pick a title here, and Marqi sends you to the righ
 - **Seasons and episodes.** Show pages list every season with each episode's title, synopsis, runtime and air date, plus stills and ratings from TMDB.
 - **Trailers.** Played in an overlay inside Marqi. YouTube only loads when you press play.
 - **My List.** Save titles for later.
-- **Language filter.** Hide original languages (say, Hindi) from every row, banner, browse page, search and recommendation.
+- **Language filter.** Pick the original languages you watch (say, English and Malayalam) and only those show up, in every row, banner, browse page, search and recommendation.
 - **For You.** Recommendations from what you watch and save, plus "Because you watched…" and "More like this".
 - **Discover mode.** Switch off recommendations and already-seen titles to surface well-rated titles in genres you don't usually watch. "Not interested" hides any title for good.
 - **Fast on weak hardware.** Server-rendered, aggressively cached, about 2 KB of Marqi's own client JS, plain `<img>` straight from the image CDNs.

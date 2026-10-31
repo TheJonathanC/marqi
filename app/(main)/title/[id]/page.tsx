@@ -14,7 +14,7 @@ import { Row } from "@/components/Cards";
 import { Meta } from "@/components/Meta";
 import { Seasons } from "@/components/Seasons";
 import { Ticket } from "@/components/Ticket";
-import { TrailerButton } from "@/components/Trailer";
+import { TrailerButton, TrailerTicketBody } from "@/components/Trailer";
 import { getSimilar, getTitle } from "@/lib/catalog";
 import { isTitleId } from "@/lib/justwatch";
 import { forRow, getProfile } from "@/lib/personal";
@@ -68,8 +68,8 @@ async function Detail({ params, searchParams }: PageProps<"/title/[id]">) {
             {trailer ? (
               <TrailerButton videoId={trailer} title={title.title} />
             ) : (
-              <a className="tool-btn trailer-btn" href={youtubeSearchUrl(title.title, title.year)} target="_blank" rel="noopener">
-                ▶ Find trailer
+              <a className="ticket ticket-trailer" href={youtubeSearchUrl(title.title, title.year)} target="_blank" rel="noopener">
+                <TrailerTicketBody label="Find trailer" />
               </a>
             )}
           </div>

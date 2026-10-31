@@ -10,7 +10,7 @@
 type TitleLike = { id: string; genres: string[]; language: string | null; imdbScore: number | null };
 
 type ProfileLike = {
-  prefs: { excludedLanguages: string[] };
+  prefs: { languages: string[] };
   hidden: { titleId: string; genres: string[] }[];
   watchlist: { titleId: string; title: string; genres: string[]; addedAt: string }[];
   history: { titleId: string; title: string; genres: string[]; status: string; clickedAt: string }[];
@@ -37,12 +37,18 @@ export function interacted(p: ProfileLike): Set<string> {
   ]);
 }
 
-/** Drops titles in excluded languages and titles the user hid. */
+/**
+ * Keeps titles in the user's chosen languages (all, if none chosen) and drops
+ * titles they hid. Titles of unknown language stay: hiding them would lose
+ * good titles over missing data.
+ */
 export function visible<T extends TitleLike>(titles: T[], p: ProfileLike | null): T[] {
   if (!p) return titles;
-  const excluded = new Set(p.prefs.excludedLanguages);
+  const languages = new Set(p.prefs.languages);
   const hidden = new Set(p.hidden.map((h) => h.titleId));
-  return titles.filter((t) => !hidden.has(t.id) && !(t.language && excluded.has(t.language)));
+  return titles.filter(
+    (t) => !hidden.has(t.id) && !(languages.size > 0 && t.language && !languages.has(t.language)),
+  );
 }
 
 /** Genre → affinity in [-1, 1], from every weighted signal. */

@@ -13,13 +13,13 @@ export function TrailerButton({ videoId, title }: { videoId: string; title: stri
     <>
       <button
         type="button"
-        className="tool-btn trailer-btn"
+        className="ticket ticket-trailer"
         onClick={() => {
           setOpen(true);
           dialog.current?.showModal();
         }}
       >
-        ▶ Trailer
+        <TrailerTicketBody label="Watch trailer" />
       </button>
       <dialog
         ref={dialog}
@@ -44,6 +44,20 @@ export function TrailerButton({ videoId, title }: { videoId: string; title: stri
           </button>
         </form>
       </dialog>
+    </>
+  );
+}
+
+export function TrailerTicketBody({ label }: { label: string }) {
+  return (
+    <>
+      <span className="ticket-main">
+        <small>Coming attraction</small>
+        {label}
+      </span>
+      <span className="ticket-stub" aria-hidden>
+        ▶
+      </span>
     </>
   );
 }

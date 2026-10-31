@@ -24,23 +24,23 @@ export default function SettingsPage() {
 async function Settings() {
   const profile = await getProfile();
   if (!profile) return <div className="empty">Sign in to change settings.</div>;
-  const excluded = new Set(profile.prefs.excludedLanguages);
+  const chosen = new Set(profile.prefs.languages);
 
   return (
     <div className="settings">
       <section>
-        <h2>Hide languages</h2>
+        <h2>Languages you watch</h2>
         <p>
-          Titles in these original languages disappear from every row, banner, browse page, search and
-          recommendation.
+          Only titles in these original languages show up in rows, banners, Browse, search and recommendations.
+          Leave everything unticked to see every language.
           {!tmdbConfigured() &&
-            " Without a TMDB key the language is inferred from the title and audio tracks, so a few titles of unknown language may still slip through."}
+            " Without a TMDB key the language is inferred from the title and audio tracks, and titles Marqi can't place stay visible."}
         </p>
         <form action={saveLanguagesAction}>
           <div className="lang-grid">
             {Object.entries(LANGUAGES).map(([code, name]) => (
               <label key={code} className="lang-chip">
-                <input type="checkbox" name="exclude" value={code} defaultChecked={excluded.has(code)} />
+                <input type="checkbox" name="language" value={code} defaultChecked={chosen.has(code)} />
                 <span>{name}</span>
               </label>
             ))}

@@ -84,7 +84,7 @@ async function Browse({ searchParams }: Pick<PageProps<"/browse">, "searchParams
 
   const titles = forRow(page.titles, profile, 42);
   const filtered = page.titles.length - titles.length;
-  const excluded = profile?.prefs.excludedLanguages ?? [];
+  const languages = profile?.prefs.languages ?? [];
 
   const pill = (label: string, active: boolean, to: string) => (
     <Link key={label} href={to} className="pill" aria-current={active ? "true" : undefined} scroll={false}>
@@ -125,7 +125,7 @@ async function Browse({ searchParams }: Pick<PageProps<"/browse">, "searchParams
       {filtered > 0 && (
         <p className="filter-note">
           {filtered} hidden on this page
-          {excluded.length > 0 && <> · not showing {excluded.map((l) => languageName(l)).join(", ")}</>} ·{" "}
+          {languages.length > 0 && <> · showing only {languages.map((l) => languageName(l)).join(", ")}</>} ·{" "}
           <Link href="/settings">Edit filters</Link>
         </p>
       )}
