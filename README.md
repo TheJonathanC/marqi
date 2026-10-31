@@ -59,6 +59,7 @@ Nothing else is required locally:
 
 ```bash
 npm test          # link cleaner, language detection, recommendation tests
+npm run test:db   # database queries through the production Postgres driver
 npm run lint
 npm run typecheck
 ```

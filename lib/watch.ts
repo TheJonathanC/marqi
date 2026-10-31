@@ -54,9 +54,10 @@ export type Profile = {
 
 const BOUNCE_MS = BOUNCE_MINUTES * 60_000;
 
-// Arrays travel as JSON text, which both postgres.js and PGlite pass through
-// unchanged, then get unpacked in SQL.
-const TEXT_ARRAY = (n: number) => `array(select jsonb_array_elements_text($${n}::jsonb))`;
+// Arrays travel as JSON text and get unpacked in SQL. The parameter is typed
+// as text on purpose: typed as jsonb, postgres.js JSON-encodes the string a
+// second time and Postgres receives a scalar instead of an array.
+const TEXT_ARRAY = (n: number) => `array(select jsonb_array_elements_text($${n}::text::jsonb))`;
 
 export async function upsertUser(user: SessionUser) {
   const db = await getDb();
@@ -145,7 +146,7 @@ export async function savePrefs(userId: string, prefs: Partial<Prefs>) {
     `insert into user_prefs (user_id, excluded_languages, discover)
      values ($1, coalesce(${TEXT_ARRAY(2)}, '{}'), coalesce($3, false))
      on conflict (user_id) do update set
-       excluded_languages = case when $2::jsonb is null then user_prefs.excluded_languages else excluded.excluded_languages end,
+       excluded_languages = case when $2::text is null then user_prefs.excluded_languages else excluded.excluded_languages end,
        discover = coalesce($3, user_prefs.discover),
        updated_at = now()`,
     [userId, prefs.excludedLanguages ? JSON.stringify(prefs.excludedLanguages) : null, prefs.discover ?? null],
