@@ -424,7 +424,12 @@ a.imdb:hover { text-decoration: underline; text-underline-offset: 3px; }
 .detail .hero-body { max-width: 640px; }
 .tagline { font-style: italic; color: var(--gold); margin-bottom: 10px; }
 .detail .synopsis { color: var(--cream-dim); margin-top: 14px; max-width: 60ch; }
-.credits { padding: 8px var(--gutter) 56px; display: grid; gap: 28px; max-width: 1100px; }
+/* Detail sections below the hero share one centred column. */
+.detail { --column: 1040px; }
+.credits {
+  display: grid; gap: 28px; padding: 8px var(--gutter) 56px;
+  width: 100%; max-width: calc(var(--column) + 2 * var(--gutter)); margin: 0 auto;
+}
 .credits h2 {
   font-size: 11px; font-weight: 500; letter-spacing: 0.28em; text-transform: uppercase;
   color: var(--cream-faint); margin-bottom: 10px;
@@ -468,13 +473,13 @@ a.imdb:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 /* ---------- Seasons & episodes ---------- */
 
-.seasons { padding: 8px 0 40px; }
+.seasons { padding: 8px 0 40px; width: 100%; max-width: calc(var(--column) + 2 * var(--gutter)); margin: 0 auto; }
 .season-tabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 var(--gutter) 18px; }
-.season-head { display: flex; gap: 18px; padding: 0 var(--gutter) 20px; max-width: 1000px; }
+.season-head { display: flex; gap: 18px; padding: 0 var(--gutter) 20px; }
 .season-head img { width: 96px; height: auto; border-radius: var(--radius); border: 1px solid var(--line); flex: none; align-self: flex-start; }
 .season-head h3 { font-family: var(--font-display); font-weight: 400; font-size: 22px; }
 .season-head p { color: var(--cream-dim); font-size: 14px; margin-top: 8px; max-width: 70ch; }
-.episodes { list-style: none; display: grid; gap: 4px; padding: 0 var(--gutter); max-width: 1000px; }
+.episodes { list-style: none; display: grid; gap: 4px; padding: 0 var(--gutter); }
 .episode { display: flex; gap: 18px; padding: 12px 0; border-top: 1px solid var(--line); }
 .episode-still {
   flex: none; width: 200px; aspect-ratio: 16 / 9; border-radius: var(--radius); overflow: hidden;
