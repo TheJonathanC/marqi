@@ -7,7 +7,9 @@ import { LANGUAGES } from "@/lib/language";
 import { getSessionUser } from "@/lib/session";
 import {
   addToList,
+  clearStatus,
   hideTitle,
+  markStatus,
   recordReturn,
   removeFromList,
   savePrefs,
@@ -39,6 +41,24 @@ export async function finishEntry(formData: FormData) {
 
 export async function dismissEntry(formData: FormData) {
   await withTitle(formData, (userId, titleId) => setStatus(userId, titleId, "dismissed"));
+}
+
+export async function markWatchingAction(formData: FormData) {
+  await withTitle(formData, async (userId, titleId) => {
+    const title = await getTitle(titleId);
+    if (title) await markStatus(userId, title, "watching");
+  });
+}
+
+export async function markWatchedAction(formData: FormData) {
+  await withTitle(formData, async (userId, titleId) => {
+    const title = await getTitle(titleId);
+    if (title) await markStatus(userId, title, "finished");
+  });
+}
+
+export async function clearWatchAction(formData: FormData) {
+  await withTitle(formData, clearStatus);
 }
 
 export async function addToListAction(formData: FormData) {

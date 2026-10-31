@@ -13,6 +13,8 @@ import type { Kind, Title } from "./justwatch";
 //
 // Pending titles show in Continue Watching straight away; coming back within
 // the bounce window means you only peeked, so the title drops out again.
+// "I'm watching" and "Already watched" on a title page set watching/finished
+// directly, without a click.
 
 export type WatchStatus = "pending" | "bounced" | "watching" | "finished" | "dismissed";
 
@@ -28,7 +30,13 @@ export type WatchEntry = {
   language: string | null;
 };
 
-export type HistoryEntry = WatchEntry & { status: WatchStatus; clickedAt: string };
+/** A history row; provider and offer are null for titles marked by hand with no current offer. */
+export type HistoryEntry = Omit<WatchEntry, "provider" | "offerId"> & {
+  provider: ProviderId | null;
+  offerId: string | null;
+  status: WatchStatus;
+  clickedAt: string;
+};
 
 export type ListEntry = {
   titleId: string;
@@ -109,6 +117,34 @@ export async function setStatus(userId: string, titleId: string, status: "finish
     titleId,
     status,
   ]);
+}
+
+/** Manual "I'm watching" / "Already watched" from a title page. */
+export async function markStatus(userId: string, t: Title, status: "watching" | "finished") {
+  const offer = t.offers[0] ?? null;
+  const db = await getDb();
+  await db?.query(
+    `insert into watch_entries (user_id, title_id, kind, title, poster, backdrop, provider, offer_id, genres, language, status, watched_at)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, ${TEXT_ARRAY(9)}, $10, $11, now())
+     on conflict (user_id, title_id) do update set
+       kind = excluded.kind, title = excluded.title, poster = excluded.poster, backdrop = excluded.backdrop,
+       provider = coalesce(excluded.provider, watch_entries.provider),
+       offer_id = coalesce(excluded.offer_id, watch_entries.offer_id),
+       genres = excluded.genres, language = excluded.language,
+       status = excluded.status, watched_at = now(),
+       -- Marking as watching moves it to the front of Continue Watching.
+       clicked_at = case when excluded.status = 'watching' then now() else watch_entries.clicked_at end`,
+    [
+      userId, t.id, t.kind, t.title, t.poster, t.backdrop, offer?.provider ?? null, offer?.id ?? null,
+      JSON.stringify(t.genres), t.language, status,
+    ],
+  );
+}
+
+/** Undo a manual mark: forget the title's watch state entirely. */
+export async function clearStatus(userId: string, titleId: string) {
+  const db = await getDb();
+  await db?.query(`delete from watch_entries where user_id = $1 and title_id = $2`, [userId, titleId]);
 }
 
 export async function addToList(userId: string, t: Title) {
@@ -202,8 +238,8 @@ export async function loadProfile(userId: string): Promise<Profile | null> {
       title: e.title,
       poster: e.poster ?? null,
       backdrop: e.backdrop ?? null,
-      provider: e.provider as ProviderId,
-      offerId: e.offer_id,
+      provider: (e.provider as ProviderId) ?? null,
+      offerId: e.offer_id ?? null,
       genres: e.genres ?? [],
       language: e.language ?? null,
       status: e.status as WatchStatus,

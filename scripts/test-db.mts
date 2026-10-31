@@ -13,6 +13,7 @@ process.env.DATABASE_URL = "postgres://postgres@127.0.0.1:5444/postgres";
 const w = await import("../lib/watch.ts");
 const uid = "gh:1";
 const show = {
+  offers: [],
   id: "ts1", kind: "show", title: "The Boys", poster: null, backdrop: null,
   year: 2019, imdbScore: 8.6, genres: ["act", "scf"], language: "en",
 } as never;
@@ -29,11 +30,23 @@ try {
   });
   await w.recordReturn(uid, "ts1", 5 * 60_000);
 
+  // Manual marks, including a title with no current offer.
+  const offerless = { ...(show as object), id: "tm5", title: "Old Film", offers: [] } as never;
+  await w.markStatus(uid, offerless, "watching");
+  await w.markStatus(uid, { ...(show as object), id: "tm6", offers: [{ id: "o6", provider: "atp" }] } as never, "finished");
+  await w.markStatus(uid, { ...(show as object), id: "tm7", offers: [] } as never, "watching");
+  await w.clearStatus(uid, "tm7");
+
   const p = await w.loadProfile(uid);
   assert.deepEqual(p?.prefs, { excludedLanguages: ["hi", "ta"], discover: true });
   assert.deepEqual(p?.watchlist.map((x) => x.genres), [["act", "scf"]]);
   assert.deepEqual(p?.hidden, [{ titleId: "tm2", title: "Nope", genres: ["rma"] }]);
-  assert.deepEqual(p?.history.map((h) => [h.status, h.genres]), [["watching", ["act"]]]);
+  const byId = new Map(p?.history.map((h) => [h.titleId, h]));
+  assert.equal(byId.get("ts1")?.status, "watching");
+  assert.deepEqual(byId.get("ts1")?.genres, ["act"]);
+  assert.deepEqual([byId.get("tm5")?.status, byId.get("tm5")?.provider], ["watching", null]);
+  assert.deepEqual([byId.get("tm6")?.status, byId.get("tm6")?.offerId], ["finished", "o6"]);
+  assert.equal(byId.has("tm7"), false);
   console.log("✔ watch store works through postgres.js");
 } finally {
   await server.stop();

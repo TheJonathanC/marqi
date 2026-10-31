@@ -1,6 +1,14 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { addToListAction, hideTitleAction, removeFromListAction, unhideTitleAction } from "@/app/actions";
+import {
+  addToListAction,
+  clearWatchAction,
+  hideTitleAction,
+  markWatchedAction,
+  markWatchingAction,
+  removeFromListAction,
+  unhideTitleAction,
+} from "@/app/actions";
 import { Backdrop } from "@/components/Art";
 import { Row } from "@/components/Cards";
 import { Meta } from "@/components/Meta";
@@ -97,15 +105,30 @@ async function Detail({ params }: Pick<PageProps<"/title/[id]">, "params">) {
   );
 }
 
-/** My List and Not interested, which depend on who's looking. */
+/** Watch state, My List and Not interested, which depend on who's looking. */
 async function PersonalTools({ titleId }: { titleId: string }) {
   const profile = await getProfile();
   if (!profile) return null;
   const listed = profile.watchlist.some((w) => w.titleId === titleId);
   const hidden = profile.hidden.some((h) => h.titleId === titleId);
+  const status = profile.history.find((h) => h.titleId === titleId)?.status;
+  const watching = status === "watching" || status === "pending";
+  const watched = status === "finished";
 
   return (
     <div className="title-tools">
+      <form action={watching ? clearWatchAction : markWatchingAction}>
+        <input type="hidden" name="titleId" value={titleId} />
+        <button type="submit" className="tool-btn" aria-pressed={watching} title="Show in Continue Watching">
+          {watching ? "▶ Watching · Undo" : "▶ I'm watching"}
+        </button>
+      </form>
+      <form action={watched ? clearWatchAction : markWatchedAction}>
+        <input type="hidden" name="titleId" value={titleId} />
+        <button type="submit" className="tool-btn" aria-pressed={watched} title="Counts towards your recommendations">
+          {watched ? "✓ Watched · Undo" : "✓ Already watched"}
+        </button>
+      </form>
       <form action={listed ? removeFromListAction : addToListAction}>
         <input type="hidden" name="titleId" value={titleId} />
         <button type="submit" className="tool-btn" aria-pressed={listed}>

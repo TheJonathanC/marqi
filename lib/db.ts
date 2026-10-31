@@ -35,6 +35,9 @@ const SCHEMA = [
   // Taste signals for recommendations, added after the first release.
   `alter table watch_entries add column if not exists genres text[] not null default '{}'`,
   `alter table watch_entries add column if not exists language text`,
+  // Titles marked "I'm watching" by hand may have no current offer.
+  `alter table watch_entries alter column provider drop not null`,
+  `alter table watch_entries alter column offer_id drop not null`,
   `create table if not exists user_prefs (
     user_id text primary key references users(id) on delete cascade,
     excluded_languages text[] not null default '{}',

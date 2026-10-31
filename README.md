@@ -7,7 +7,7 @@ Marqi is the first layer: you pick a title here, and Marqi sends you to the righ
 - **India only.** Every query is locked to `IN`.
 - **Subscriptions only.** `flatrate` offers from exactly three packages. Rentals, purchases and Prime add-on channels (Lionsgate Play, MGM+, …) are removed.
 - **Storefront guard.** `amazon.com` and other non-India links are rejected, and Apple TV links are rewritten to `/in/`. Tracking params are stripped, while Prime's `gti` is kept.
-- **Continue Watching.** Tracks what you open and resume, with no provider API access needed.
+- **Continue Watching.** Tracks what you open and resume, with no provider API access needed. "I'm watching" and "Already watched" on any title page set it by hand.
 - **IMDb everywhere.** Ratings on every poster, vote counts and IMDb links on title pages, and an IMDb minimum filter in Browse.
 - **My List.** Save titles for later.
 - **Language filter.** Hide original languages (say, Hindi) from every row, banner, browse page, search and recommendation.
@@ -39,7 +39,7 @@ Browser ──► Next.js (Vercel, bom1)
 
 Providers don't expose episode progress, so for shows the row resumes the show, not a specific episode.
 
-**Recommendations** (`lib/taste.ts`). Every interaction is a weighted signal: finished 4, watching 3, opened 2, in My List 2.5, peeked 0.5, removed −1, not interested −2. The signals build a genre-affinity profile and pick up to five "seed" titles. Candidates come from JustWatch's similar titles for each seed, and are scored by how many seeds point at them (and how high up), how well their genres fit, and their IMDb rating. Anything you've already touched is never recommended.
+**Recommendations** (`lib/taste.ts`). Every interaction is a weighted signal: finished or marked watched 4, watching 3, opened 2, in My List 2.5, peeked 0.5, removed −1, not interested −2. The signals build a genre-affinity profile and pick up to five "seed" titles. Candidates come from JustWatch's similar titles for each seed, and are scored by how many seeds point at them (and how high up), how well their genres fit, and their IMDb rating. Anything you've already touched is never recommended.
 
 **Discover mode** replaces For You with top-rated titles from genres you rarely watch (the pick rotates daily), and filters already-seen titles out of every row.
 
