@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Grid } from "@/components/Cards";
-import { getProfile } from "@/lib/personal";
+import { getProfile, markWatched } from "@/lib/personal";
 
 export const metadata: Metadata = { title: "My List" };
 
@@ -21,7 +21,10 @@ export default function ListPage() {
 
 async function List() {
   const profile = await getProfile();
-  const titles = (profile?.watchlist ?? []).map((w) => ({ ...w, id: w.titleId }));
+  const titles = markWatched(
+    (profile?.watchlist ?? []).map((w) => ({ ...w, id: w.titleId })),
+    profile,
+  );
   if (titles.length === 0) {
     return (
       <div className="empty">

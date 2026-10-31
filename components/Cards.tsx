@@ -14,6 +14,8 @@ export type CardTitle = {
   imdbScore: number | null;
   language: string | null;
   offers?: Offer[];
+  /** Set when signed in: shows the ✓ watched toggle in that state */
+  watched?: boolean;
 };
 
 export function ImdbChip({ score }: { score: number | null }) {
@@ -28,22 +30,37 @@ export function ImdbChip({ score }: { score: number | null }) {
 export function PosterCard({ title, eager }: { title: CardTitle; eager?: boolean }) {
   const language = languageName(title.language);
   return (
-    <Link href={`/title/${title.id}`} className="card" data-card>
-      <div className="card-poster">
-        {title.poster ? (
-          <Poster template={title.poster} alt="" eager={eager} />
-        ) : (
-          <span className="no-art">{title.title}</span>
-        )}
-        <ImdbChip score={title.imdbScore} />
-      </div>
-      <div className="card-title">{title.title}</div>
-      <div className="card-sub">
-        {!!title.year && <span>{title.year}</span>}
-        {language && <span>{language}</span>}
-        {title.offers && <ProviderDots offers={title.offers} />}
-      </div>
-    </Link>
+    <div className="card-wrap">
+      <Link href={`/title/${title.id}`} className="card" data-card>
+        <div className="card-poster">
+          {title.poster ? (
+            <Poster template={title.poster} alt="" eager={eager} />
+          ) : (
+            <span className="no-art">{title.title}</span>
+          )}
+          <ImdbChip score={title.imdbScore} />
+        </div>
+        <div className="card-title">{title.title}</div>
+        <div className="card-sub">
+          {!!title.year && <span>{title.year}</span>}
+          {language && <span>{language}</span>}
+          {title.offers && <ProviderDots offers={title.offers} />}
+        </div>
+      </Link>
+      {title.watched !== undefined && (
+        // Handled by LauncherScripts: one delegated listener for every card.
+        <button
+          type="button"
+          className="seen-btn"
+          data-seen={title.id}
+          aria-pressed={title.watched}
+          aria-label={title.watched ? `Watched ${title.title}. Undo` : `Mark ${title.title} as watched`}
+          title={title.watched ? "Watched · click to undo" : "Already watched"}
+        >
+          ✓
+        </button>
+      )}
+    </div>
   );
 }
 

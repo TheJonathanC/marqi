@@ -11,8 +11,8 @@ export function Header() {
       <nav className="nav" aria-label="Main">
         <Link href="/">Now Showing</Link>
         <Link href="/browse">Browse</Link>
-        <Link href="/browse?kind=movie">Films</Link>
-        <Link href="/browse?kind=show">Series</Link>
+        <Link href="/films">Films</Link>
+        <Link href="/series">Series</Link>
         <Link href="/list">My List</Link>
       </nav>
       <form action="/search" className="search" role="search">

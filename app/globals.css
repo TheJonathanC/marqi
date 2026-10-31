@@ -254,6 +254,7 @@ a.imdb:hover { text-decoration: underline; text-underline-offset: 3px; }
 .row-note { font-size: 12px; color: var(--cream-faint); }
 .row-hint { padding: 0 var(--gutter); color: var(--cream-faint); font-size: 14px; max-width: 70ch; }
 .row-hint em { color: var(--gold); font-style: normal; }
+.row-hint a, .row-note a { color: var(--gold); }
 .row-head a { margin-left: auto; font-size: 13px; color: var(--cream-faint); }
 .row-head a:hover { color: var(--gold); }
 
@@ -306,6 +307,19 @@ a.imdb:hover { text-decoration: underline; text-underline-offset: 3px; }
   font-size: 11px; font-weight: 600; line-height: 1.5;
   box-shadow: 0 1px 3px #0008;
 }
+.card-wrap { position: relative; }
+.seen-btn {
+  position: absolute; top: 6px; right: 6px;
+  width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
+  background: #0f0d0bcc; border: 1px solid #f3e9d266; color: var(--cream);
+  font-size: 13px; line-height: 1;
+  opacity: 0; transition: opacity 0.15s, background-color 0.15s;
+}
+.card-wrap:hover .seen-btn, .seen-btn:focus-visible { opacity: 1; }
+.seen-btn:hover { border-color: var(--gold); color: var(--gold); }
+.seen-btn[aria-pressed="true"] { opacity: 1; background: var(--gold); border-color: var(--gold); color: var(--bg); font-weight: 700; }
+.card-wrap:has(.seen-btn[aria-pressed="true"]) .card-poster img { opacity: 0.55; }
+@media (hover: none) { .seen-btn { opacity: 0.85; } }
 .card:hover .card-poster, .card:focus-visible .card-poster { border-color: var(--gold); translate: 0 -3px; }
 .card:focus-visible { outline: none; }
 .card-title {
@@ -369,7 +383,8 @@ a.imdb:hover { text-decoration: underline; text-underline-offset: 3px; }
   background: none; color: var(--cream-dim); font-size: 13px; letter-spacing: 0.04em;
 }
 .mode-switch button[aria-pressed="true"] { background: var(--gold); color: var(--bg); font-weight: 600; }
-.mode-langs { margin-left: auto; color: var(--cream-faint); }
+.mode-langs { color: var(--cream-faint); }
+.mode-langs:first-of-type { margin-left: auto; }
 .mode-langs:hover { color: var(--gold); }
 
 /* ---------- Page heads, filters ---------- */

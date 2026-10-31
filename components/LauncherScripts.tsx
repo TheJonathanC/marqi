@@ -1,18 +1,26 @@
 "use client";
 
 import { useEffect } from "react";
-import { reportReturn } from "@/app/actions";
+import { reportReturn, setWatchedAction } from "@/app/actions";
 
-// The only client JavaScript Marqi ships, attached once at the layout:
+// Marqi's shared client script, attached once at the layout:
 //  1. Dwell timer: after a Watch click, time how long this tab stays hidden
 //     and report it when you come back (Page Visibility API).
 //  2. Keyboard: "/" to search, arrow keys to move between cards and rows.
+//  3. The ✓ watched toggle on poster cards (flips instantly, then saves).
 export function LauncherScripts() {
   useEffect(() => {
     let pending: string | null = null;
     let hiddenAt: number | null = null;
 
     function onClick(e: MouseEvent) {
+      const seen = (e.target as Element).closest<HTMLButtonElement>("[data-seen]");
+      if (seen && e.type === "click") {
+        const next = seen.getAttribute("aria-pressed") !== "true";
+        seen.setAttribute("aria-pressed", String(next));
+        setWatchedAction(seen.dataset.seen!, next).catch(() => seen.setAttribute("aria-pressed", String(!next)));
+        return;
+      }
       const link = (e.target as Element).closest<HTMLElement>("[data-watch]");
       if (!link) return;
       pending = link.dataset.watch ?? null;

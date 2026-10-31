@@ -57,6 +57,19 @@ export async function markWatchedAction(formData: FormData) {
   });
 }
 
+/** The ✓ on poster cards: mark as watched, or undo, without opening the title. */
+export async function setWatchedAction(titleId: string, watched: boolean) {
+  const user = await getSessionUser();
+  if (!user || !isTitleId(titleId)) return;
+  if (watched) {
+    const title = await getTitle(titleId);
+    if (title) await markStatus(user.id, title, "finished");
+  } else {
+    await clearStatus(user.id, titleId);
+  }
+  refresh();
+}
+
 export async function clearWatchAction(formData: FormData) {
   await withTitle(formData, clearStatus);
 }

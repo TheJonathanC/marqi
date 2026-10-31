@@ -9,6 +9,8 @@ Marqi is the first layer: you pick a title here, and Marqi sends you to the righ
 - **Storefront guard.** `amazon.com` and other non-India links are rejected, and Apple TV links are rewritten to `/in/`. Tracking params are stripped, while Prime's `gti` is kept.
 - **Continue Watching.** Tracks what you open and resume, with no provider API access needed. "I'm watching" and "Already watched" on any title page set it by hand.
 - **IMDb everywhere.** Ratings on every poster, vote counts and IMDb links on title pages, and an IMDb minimum filter in Browse.
+- **Films and Series pages.** Trays for each: For You, Because you watched, Popular, Trending, New Releases, IMDb Top Rated, genre trays ordered by your taste, and one per service.
+- **One-click watched.** Hover any poster and press ✓ to mark it watched, or run through `/seen` to tick off what you've already seen.
 - **My List.** Save titles for later.
 - **Language filter.** Hide original languages (say, Hindi) from every row, banner, browse page, search and recommendation.
 - **For You.** Recommendations from what you watch and save, plus "Because you watched…" and "More like this".
@@ -87,6 +89,8 @@ app/
   (main)/browse/page.tsx   Filter grid; filters live in the URL
   (main)/search/page.tsx   Search
   (main)/title/[id]/       Title detail: tickets, My List, Not interested, More like this
+  (main)/films, series/    Tray pages for each kind (components/KindPage.tsx)
+  (main)/seen/             Quick "mark what you've seen" grid
   (main)/list/             My List
   (main)/settings/         Language filter, Discover mode, hidden titles
   go/[offerId]/route.ts    Smart redirect

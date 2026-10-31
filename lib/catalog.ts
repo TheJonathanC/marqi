@@ -56,3 +56,10 @@ export async function getGenres() {
   cacheLife("days");
   return fetchGenres();
 }
+
+/** The current year, cached so pages can use it without opting out of prerendering. */
+export async function currentYear() {
+  "use cache";
+  cacheLife("days");
+  return new Date().getFullYear();
+}

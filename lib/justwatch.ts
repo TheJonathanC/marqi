@@ -59,6 +59,7 @@ export type TitleQuery = {
   search?: string;
   minImdbVotes?: number;
   minImdbScore?: number;
+  minYear?: number;
   first?: number;
   after?: string;
 };
@@ -241,6 +242,7 @@ export async function fetchTitles(q: TitleQuery): Promise<Page> {
   const minVotes = q.minImdbVotes ?? (q.sort === "imdb" ? 10_000 : undefined);
   if (minVotes) filter.imdbVotes = { min: minVotes };
   if (q.minImdbScore) filter.imdbScore = { min: q.minImdbScore };
+  if (q.minYear) filter.releaseYear = { min: q.minYear };
 
   const data = await gql<{
     popularTitles: {

@@ -3,11 +3,12 @@ import { Suspense } from "react";
 import { setDiscoverAction } from "@/app/actions";
 import { Row, type CardTitle } from "@/components/Cards";
 import { ContinueWatching } from "@/components/ContinueWatching";
-import { BannerSkeleton, Banners, type Feature } from "@/components/Hero";
+import { Featured } from "@/components/Featured";
+import { BannerSkeleton } from "@/components/Hero";
+import { RowsSkeleton } from "@/components/RowsSkeleton";
 import { getTitles } from "@/lib/catalog";
-import type { Title } from "@/lib/justwatch";
 import { languageName } from "@/lib/language";
-import { forRow, getDiscoveries, getProfile, getRecommendations, visible } from "@/lib/personal";
+import { forRow, getDiscoveries, getProfile, getRecommendations, markWatched, visible } from "@/lib/personal";
 import { PROVIDERS, PROVIDER_IDS } from "@/lib/providers";
 import type { Profile } from "@/lib/watch";
 
@@ -24,37 +25,6 @@ export default function Home() {
       </div>
     </>
   );
-}
-
-/** Banners: picks for you first (unless in Discover mode), then trending titles that rate well. */
-async function Featured() {
-  const profile = await getProfile();
-  const [trending, acclaimed] = await Promise.all([
-    getTitles({ sort: "trending", first: 40 }),
-    getTitles({ sort: "popular", minImdbScore: 7.5, minImdbVotes: 5_000, first: 40 }),
-  ]);
-  const recs = profile && !profile.prefs.discover ? (await getRecommendations(profile)).forYou : [];
-
-  const features: Feature[] = [];
-  const add = (titles: Title[], eyebrow: (t: Title) => string, max: number) => {
-    let added = 0;
-    for (const t of forRow(titles, profile, 40)) {
-      if (features.length >= 6 || added >= max) return;
-      if (!t.backdrop || features.some((f) => f.title.id === t.id)) continue;
-      features.push({ title: t, eyebrow: eyebrow(t) });
-      added++;
-    }
-  };
-  add(recs, () => "Picked for you", 2);
-  add(
-    trending.titles.filter((t) => (t.imdbScore ?? 0) >= 7),
-    () => "Trending tonight",
-    3,
-  );
-  add(acclaimed.titles, (t) => `Critics' pick · IMDb ${t.imdbScore?.toFixed(1)}`, 6);
-  add(trending.titles, () => "Now playing", 6);
-
-  return <Banners features={features} />;
 }
 
 async function HomeRows() {
@@ -89,8 +59,11 @@ async function HomeRows() {
 }
 
 function MyListRow({ profile }: { profile: Profile }) {
-  const titles: CardTitle[] = visible(
-    profile.watchlist.map((w) => ({ ...w, id: w.titleId })),
+  const titles: CardTitle[] = markWatched(
+    visible(
+      profile.watchlist.map((w) => ({ ...w, id: w.titleId })),
+      profile,
+    ),
     profile,
   );
   return <Row heading="My List" titles={titles} href="/list" />;
@@ -114,6 +87,9 @@ function ModeBar({ profile }: { profile: Profile }) {
           ? "Off your usual path: no recommendations, nothing you've seen."
           : "Suggestions from what you watch and save."}
       </span>
+      <Link href="/seen" className="mode-langs">
+        Mark what you&apos;ve seen
+      </Link>
       <Link href="/settings" className="mode-langs">
         {excludedLanguages.length
           ? `Hiding ${excludedLanguages.map((l) => languageName(l)).join(", ")}`
@@ -132,7 +108,11 @@ async function ForYouRows({ profile }: { profile: Profile }) {
       <Row
         heading="Start Here"
         titles={forRow(starter.titles, profile)}
-        note="Watch or save a few titles and this becomes For You"
+        note={
+          <>
+            Watch or save a few titles and this becomes For You, or <Link href="/seen">mark what you&apos;ve seen</Link>
+          </>
+        }
       />
     );
   }
@@ -157,19 +137,5 @@ async function DiscoverRows({ profile }: { profile: Profile }) {
         />
       ))}
     </>
-  );
-}
-
-function RowsSkeleton() {
-  return (
-    <div className="skeleton-rows" aria-hidden>
-      {[0, 1].map((i) => (
-        <div key={i} className="skeleton-row">
-          {Array.from({ length: 8 }, (_, j) => (
-            <div key={j} />
-          ))}
-        </div>
-      ))}
-    </div>
   );
 }
