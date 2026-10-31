@@ -34,3 +34,11 @@ export function tmdbBackdropSet(path: string): ImageSet {
     srcSet: `${TMDB}/w780${path} 780w, ${TMDB}/w1280${path} 1280w, ${TMDB}/original${path} 3840w`,
   };
 }
+
+/** TMDB episode stills (16:9). */
+export function tmdbStillSet(path: string): ImageSet {
+  return {
+    src: `${TMDB}/w300${path}`,
+    srcSet: `${TMDB}/w185${path} 185w, ${TMDB}/w300${path} 300w`,
+  };
+}

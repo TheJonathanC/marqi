@@ -11,6 +11,8 @@ Marqi is the first layer: you pick a title here, and Marqi sends you to the righ
 - **IMDb everywhere.** Ratings on every poster, vote counts and IMDb links on title pages, and an IMDb minimum filter in Browse.
 - **Films and Series pages.** Trays for each: For You, Because you watched, Popular, Trending, New Releases, IMDb Top Rated, genre trays ordered by your taste, and one per service.
 - **One-click watched.** Hover any poster and press ✓ to mark it watched, or run through `/seen` to tick off what you've already seen.
+- **Seasons and episodes.** Show pages list every season with each episode's title, synopsis, runtime and air date, plus stills and ratings from TMDB.
+- **Trailers.** Played in an overlay inside Marqi. YouTube only loads when you press play.
 - **My List.** Save titles for later.
 - **Language filter.** Hide original languages (say, Hindi) from every row, banner, browse page, search and recommendation.
 - **For You.** Recommendations from what you watch and save, plus "Because you watched…" and "More like this".
@@ -79,7 +81,7 @@ npm run typecheck
 | `SESSION_SECRET` | yes | 32+ random characters, e.g. `openssl rand -base64 32` |
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | yes | From the OAuth app |
 | `ALLOWED_GITHUB_LOGINS` | yes | Comma-separated logins allowed in. Empty means nobody. |
-| `TMDB_API_KEY` | recommended | v3 key or v4 read token (free from themoviedb.org). Makes the language filter exact, and adds taglines, fuller synopses and 4K backdrops. |
+| `TMDB_API_KEY` | recommended | v3 key or v4 read token (free from themoviedb.org). Makes the language filter exact, and adds trailers, episode stills and ratings, taglines, fuller synopses and 4K backdrops. |
 
 ## Project layout
 

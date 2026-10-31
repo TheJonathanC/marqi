@@ -1,7 +1,16 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
-import { fetchGenres, fetchSimilar, fetchTitle, fetchTitles, type Title, type TitleQuery } from "./justwatch";
-import { getTmdbExtras, tmdbConfigured } from "./tmdb";
+import {
+  fetchEpisodes,
+  fetchGenres,
+  fetchSimilar,
+  fetchTitle,
+  fetchTitles,
+  type Episode,
+  type Title,
+  type TitleQuery,
+} from "./justwatch";
+import { getTmdbExtras, getTmdbSeason, tmdbConfigured, type TmdbEpisode } from "./tmdb";
 
 // Cached entry points for everything the UI reads. These are shared by every
 // user (personal filtering happens per request on top, in lib/personal.ts), so
@@ -37,6 +46,22 @@ export async function getTitle(id: string) {
   return { ...title, language: extras?.language ?? title.language, extras };
 }
 
+/** A season's episodes from JustWatch, with TMDB stills and ratings when available. */
+export async function getEpisodes(
+  seasonId: string,
+  tmdbId: string | null,
+  seasonNumber: number,
+): Promise<(Episode & Partial<TmdbEpisode>)[]> {
+  "use cache: remote";
+  cacheLife("days");
+  cacheTag("catalog", `season:${seasonId}`);
+  const [episodes, extras] = await Promise.all([
+    fetchEpisodes(seasonId),
+    tmdbId ? getTmdbSeason(tmdbId, seasonNumber) : null,
+  ]);
+  return episodes.map((e) => ({ ...e, ...extras?.[e.number] }));
+}
+
 export async function getSimilar(id: string) {
   "use cache: remote";
   cacheLife("days");
@@ -62,4 +87,11 @@ export async function currentYear() {
   "use cache";
   cacheLife("days");
   return new Date().getFullYear();
+}
+
+/** Today's date (YYYY-MM-DD), cached for an hour so pages can compare air dates while prerendering. */
+export async function today() {
+  "use cache";
+  cacheLife("hours");
+  return new Date().toISOString().slice(0, 10);
 }

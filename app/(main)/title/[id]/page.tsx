@@ -12,10 +12,13 @@ import {
 import { Backdrop } from "@/components/Art";
 import { Row } from "@/components/Cards";
 import { Meta } from "@/components/Meta";
+import { Seasons } from "@/components/Seasons";
 import { Ticket } from "@/components/Ticket";
+import { TrailerButton } from "@/components/Trailer";
 import { getSimilar, getTitle } from "@/lib/catalog";
 import { isTitleId } from "@/lib/justwatch";
 import { forRow, getProfile } from "@/lib/personal";
+import { youtubeSearchUrl } from "@/lib/trailer";
 
 export async function generateMetadata({ params }: PageProps<"/title/[id]">) {
   const { id } = await params;
@@ -23,7 +26,7 @@ export async function generateMetadata({ params }: PageProps<"/title/[id]">) {
   return { title: title?.title ?? "Title" };
 }
 
-export default function TitlePage({ params }: PageProps<"/title/[id]">) {
+export default function TitlePage({ params, searchParams }: PageProps<"/title/[id]">) {
   return (
     <Suspense
       fallback={
@@ -32,18 +35,19 @@ export default function TitlePage({ params }: PageProps<"/title/[id]">) {
         </div>
       }
     >
-      <Detail params={params} />
+      <Detail params={params} searchParams={searchParams} />
     </Suspense>
   );
 }
 
-async function Detail({ params }: Pick<PageProps<"/title/[id]">, "params">) {
+async function Detail({ params, searchParams }: PageProps<"/title/[id]">) {
   const { id } = await params;
   if (!isTitleId(id)) notFound();
   const title = await getTitle(id);
   if (!title) notFound();
 
   const overview = title.extras?.overview || title.overview;
+  const trailer = title.extras?.trailer ?? title.clipKey;
 
   return (
     <article className="detail">
@@ -57,13 +61,19 @@ async function Detail({ params }: Pick<PageProps<"/title/[id]">, "params">) {
           {title.extras?.tagline && <p className="tagline">{title.extras.tagline}</p>}
           <Meta title={title} seasons={title.seasons} showVotes />
           {overview && <p className="synopsis">{overview}</p>}
-          {title.offers.length ? (
-            <div className="actions">
-              {title.offers.map((o) => (
-                <Ticket key={o.id} offer={o} titleId={title.id} />
-              ))}
-            </div>
-          ) : (
+          <div className="actions">
+            {title.offers.map((o) => (
+              <Ticket key={o.id} offer={o} titleId={title.id} />
+            ))}
+            {trailer ? (
+              <TrailerButton videoId={trailer} title={title.title} />
+            ) : (
+              <a className="tool-btn trailer-btn" href={youtubeSearchUrl(title.title, title.year)} target="_blank" rel="noopener">
+                ▶ Find trailer
+              </a>
+            )}
+          </div>
+          {title.offers.length === 0 && (
             <p className="unavailable">Not currently showing on Prime Video, JioHotstar or Apple TV in India.</p>
           )}
           <Suspense fallback={<div className="title-tools" />}>
@@ -71,6 +81,12 @@ async function Detail({ params }: Pick<PageProps<"/title/[id]">, "params">) {
           </Suspense>
         </div>
       </section>
+
+      {title.kind === "show" && (
+        <Suspense fallback={null}>
+          <Seasons titleId={title.id} tmdbId={title.tmdbId} seasons={title.seasonList} searchParams={searchParams} />
+        </Suspense>
+      )}
 
       {(title.cast.length > 0 || title.directors.length > 0) && (
         <section className="credits">

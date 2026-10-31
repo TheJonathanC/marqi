@@ -42,7 +42,30 @@ export type Title = {
 
 export type Credit = { name: string; character: string | null };
 
+export type SeasonSummary = {
+  id: string;
+  number: number;
+  title: string;
+  overview: string;
+  poster: string | null;
+  year: number | null;
+  episodeCount: number;
+};
+
+export type Episode = {
+  id: string;
+  number: number;
+  title: string;
+  overview: string;
+  runtime: number | null;
+  airDate: string | null;
+};
+
 export type TitleDetail = Title & {
+  /** Seasons in order, specials (season 0) last */
+  seasonList: SeasonSummary[];
+  /** YouTube video ID from JustWatch's clips, when it has one */
+  clipKey: string | null;
   cast: Credit[];
   directors: string[];
   seasons: number | null;
@@ -104,9 +127,31 @@ const DETAIL_QUERY = `
     node(id: $id) {
       ... on MovieOrShow {
         ${TITLE_FIELDS}
-        content(country: $country, language: "en") { credits { role name characterName } }
+        content(country: $country, language: "en") {
+          credits { role name characterName }
+          clips { externalId provider }
+        }
       }
-      ... on Show { totalSeasonCount }
+      ... on Show {
+        totalSeasonCount
+        seasons {
+          id totalEpisodeCount
+          content(country: $country, language: "en") { seasonNumber title shortDescription posterUrl originalReleaseYear }
+        }
+      }
+    }
+  }
+`;
+
+const EPISODES_QUERY = `
+  query Episodes($id: ID!, $country: Country!) {
+    node(id: $id) {
+      ... on Season {
+        episodes {
+          id
+          content(country: $country, language: "en") { title episodeNumber shortDescription runtime originalReleaseDate }
+        }
+      }
     }
   }
 `;
@@ -138,6 +183,17 @@ type RawTitle = {
   id: string;
   objectType: "MOVIE" | "SHOW";
   totalSeasonCount?: number;
+  seasons?: {
+    id: string;
+    totalEpisodeCount: number | null;
+    content: {
+      seasonNumber: number;
+      title: string | null;
+      shortDescription: string | null;
+      posterUrl: string | null;
+      originalReleaseYear: number | null;
+    };
+  }[];
   content: {
     title: string;
     originalTitle?: string | null;
@@ -152,6 +208,7 @@ type RawTitle = {
     scoring: { imdbScore: number | null; imdbVotes: number | null } | null;
     externalIds: { tmdbId: string | null; imdbId: string | null } | null;
     credits?: { role: string; name: string; characterName: string | null }[];
+    clips?: { externalId: string; provider: string }[];
   };
   offers: RawOffer[] | null;
 };
@@ -279,8 +336,51 @@ export async function fetchTitle(id: string): Promise<TitleDetail | null> {
       .map((c) => ({ name: c.name, character: c.characterName || null })),
     directors: [...new Set(credits.filter((c) => c.role === "DIRECTOR").map((c) => c.name))].slice(0, 3),
     seasons: raw.totalSeasonCount ?? null,
+    seasonList: (raw.seasons ?? [])
+      .map((x) => ({
+        id: x.id,
+        number: x.content.seasonNumber,
+        title: x.content.title || `Season ${x.content.seasonNumber}`,
+        overview: x.content.shortDescription ?? "",
+        poster: x.content.posterUrl ?? null,
+        year: x.content.originalReleaseYear ?? null,
+        episodeCount: x.totalEpisodeCount ?? 0,
+      }))
+      .sort((a, b) => (a.number || 1e9) - (b.number || 1e9)),
+    clipKey: raw.content.clips?.find((c) => c.provider.toUpperCase() === "YOUTUBE")?.externalId ?? null,
     backdrops: (raw.content.backdrops ?? []).map((b) => b.backdropUrl),
   };
+}
+
+export async function fetchEpisodes(seasonId: string): Promise<Episode[]> {
+  const data = await gql<{
+    node: {
+      episodes?: {
+        id: string;
+        content: {
+          title: string | null;
+          episodeNumber: number;
+          shortDescription: string | null;
+          runtime: number | null;
+          originalReleaseDate: string | null;
+        };
+      }[];
+    } | null;
+  }>(EPISODES_QUERY, { id: seasonId });
+  return (data.node?.episodes ?? [])
+    .map((e) => ({
+      id: e.id,
+      number: e.content.episodeNumber,
+      title: e.content.title || `Episode ${e.content.episodeNumber}`,
+      overview: e.content.shortDescription ?? "",
+      runtime: e.content.runtime || null,
+      airDate: e.content.originalReleaseDate ?? null,
+    }))
+    .sort((a, b) => a.number - b.number);
+}
+
+export function isSeasonId(id: string): boolean {
+  return /^tss\d+$/.test(id);
 }
 
 export async function fetchSimilar(id: string, limit = 24): Promise<Title[]> {
