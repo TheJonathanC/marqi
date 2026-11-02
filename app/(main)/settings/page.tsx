@@ -90,6 +90,16 @@ async function Settings() {
           </ul>
         )}
       </section>
+
+      {/* The header drops its Sign out button on phones; it's always here. */}
+      <section>
+        <h2>Account</h2>
+        <form action="/auth/logout" method="post">
+          <button type="submit" className="tool-btn subtle">
+            Sign out
+          </button>
+        </form>
+      </section>
     </div>
   );
 }

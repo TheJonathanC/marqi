@@ -20,6 +20,10 @@ export function Header() {
           Search titles
         </label>
         <input id="q" name="q" type="search" placeholder="Search the programme…" autoComplete="off" />
+        {/* Phones show this shorter placeholder instead; it hides once you type. */}
+        <span className="search-short" aria-hidden>
+          Search…
+        </span>
         <kbd>/</kbd>
       </form>
       <Suspense fallback={<div className="user-skeleton" />}>

@@ -68,7 +68,7 @@ function CwBody({ entry, sub }: { entry: HistoryEntry; sub: string }) {
   return (
     <>
       <div className="cw-art">
-        <Backdrop template={entry.backdrop} sizes="280px" />
+        <Backdrop template={entry.backdrop} sizes="(max-width: 359px) 78vw, (min-width: 1921px) 14.6vw, 280px" />
       </div>
       <div className="card-title">{entry.title}</div>
       <div className="card-sub">{sub}</div>

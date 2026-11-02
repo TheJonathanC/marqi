@@ -63,7 +63,7 @@ export async function Seasons({
         {season.poster && (
           <img
             {...posterSet(season.poster)}
-            sizes="96px"
+            sizes="(min-width: 1921px) 5vw, 96px"
             alt=""
             width={96}
             height={144}
@@ -95,7 +95,7 @@ export async function Seasons({
               <li key={e.id} className={upcoming ? "episode upcoming" : "episode"}>
                 <div className="episode-still">
                   {e.still ? (
-                    <img {...tmdbStillSet(e.still)} sizes="200px" alt="" width={300} height={169} loading="lazy" decoding="async" />
+                    <img {...tmdbStillSet(e.still)} sizes="(max-width: 720px) 120px, (min-width: 1921px) 10.4vw, 200px" alt="" width={300} height={169} loading="lazy" decoding="async" />
                   ) : (
                     <span>{e.number}</span>
                   )}

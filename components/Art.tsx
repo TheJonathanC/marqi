@@ -8,7 +8,7 @@ export function Poster({ template, alt, eager = false }: { template: string; alt
     <img
       src={src}
       srcSet={srcSet}
-      sizes="(max-width: 720px) 128px, 166px"
+      sizes="(max-width: 720px) 32vw, (min-width: 1921px) 8.7vw, 166px"
       alt={alt}
       width={332}
       height={498}

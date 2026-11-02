@@ -11,7 +11,8 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export const viewport: Viewport = { themeColor: "#0f0d0b", colorScheme: "dark" };
+// viewportFit: cover lets the backdrops run under a phone's notch; --gutter keeps text clear of it.
+export const viewport: Viewport = { themeColor: "#0f0d0b", colorScheme: "dark", viewportFit: "cover" };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
