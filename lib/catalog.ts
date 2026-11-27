@@ -1,8 +1,10 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
+import { orderFilms, franchiseName, sagaFor, type FranchiseFilm } from "./franchise";
 import {
   fetchEpisodes,
   fetchGenres,
+  fetchMovieByTmdbId,
   fetchSimilar,
   fetchTitle,
   fetchTitles,
@@ -11,7 +13,7 @@ import {
   type TitleQuery,
 } from "./justwatch";
 import type { CatalogScope } from "./providers";
-import { getTmdbExtras, getTmdbSeason, tmdbConfigured, type TmdbEpisode } from "./tmdb";
+import { getTmdbCollection, getTmdbExtras, getTmdbSeason, tmdbConfigured, type TmdbEpisode } from "./tmdb";
 
 // Cached entry points for everything the UI reads. These are shared by every
 // user (personal filtering happens per request on top, in lib/personal.ts), so
@@ -83,6 +85,67 @@ export async function getGenres() {
   "use cache: remote";
   cacheLife("days");
   return fetchGenres();
+}
+
+export type FranchiseEntry = FranchiseFilm & {
+  /** JustWatch title ID; null when JustWatch doesn't list the film */
+  id: string | null;
+  poster: string | null;
+  tmdbPoster: string | null;
+  imdbScore: number | null;
+  offers: Title["offers"];
+};
+
+export type Franchise = {
+  name: string;
+  /** Set for hand-written sagas, whose watch order is story order */
+  note: string | null;
+  release: FranchiseEntry[];
+  watch: FranchiseEntry[];
+  differ: boolean;
+};
+
+/**
+ * The film series a movie belongs to, in release and watch order: a
+ * hand-written saga (lib/franchise.ts) if it's in one, else its TMDB
+ * collection. Every film is listed, whether or not it's on your services.
+ */
+export async function getFranchise(
+  tmdbId: string,
+  collectionId: string | null,
+  scope: CatalogScope,
+): Promise<Franchise | null> {
+  "use cache: remote";
+  cacheLife("days");
+  cacheTag("catalog");
+  const saga = sagaFor(tmdbId);
+  const collection = saga || !collectionId ? null : await getTmdbCollection(collectionId);
+  const films = saga
+    ? saga.films.map(([id, title]) => ({ tmdbId: id, title, date: null, poster: null }))
+    : (collection?.parts ?? []);
+  if (films.length < 2) return null;
+
+  const entries = await Promise.all(
+    films.map(async (f): Promise<FranchiseEntry> => {
+      const jw = await fetchMovieByTmdbId(f.tmdbId, f.title, scope).catch(() => null);
+      return {
+        tmdbId: f.tmdbId,
+        id: jw?.id ?? null,
+        title: jw?.title ?? f.title,
+        date: f.date,
+        year: jw?.year ?? (f.date ? Number(f.date.slice(0, 4)) : null),
+        poster: jw?.poster ?? null,
+        tmdbPoster: f.poster,
+        imdbScore: jw?.imdbScore ?? null,
+        offers: jw?.offers ?? [],
+      };
+    }),
+  );
+  return {
+    name: saga ? saga.name : franchiseName(collection!.name),
+    note: saga?.note ?? null,
+    ...orderFilms(entries, Boolean(saga)),
+  };
 }
 
 /** The current year, cached so pages can use it without opting out of prerendering. */

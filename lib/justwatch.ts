@@ -403,6 +403,27 @@ export async function fetchSimilar(id: string, scope: CatalogScope, limit = 24):
     .filter((t) => t.offers.length > 0);
 }
 
+/**
+ * A film by its TMDB ID, whether or not it's on any service. JustWatch can't
+ * be asked by external ID, so this searches by title and matches the ID.
+ * Offers are limited to the scope's services, as everywhere else.
+ */
+export async function fetchMovieByTmdbId(tmdbId: string, title: string, scope: CatalogScope): Promise<Title | null> {
+  const data = await gql<{ popularTitles: { edges: { node: RawTitle }[] } }>(
+    LIST_QUERY,
+    {
+      packages: scope.providers,
+      first: 15,
+      after: null,
+      sortBy: SORTS.popular,
+      filter: { searchQuery: title, objectTypes: ["MOVIE"] },
+    },
+    scope.country,
+  );
+  const raw = data.popularTitles.edges.find((e) => e.node.content?.externalIds?.tmdbId === tmdbId)?.node;
+  return raw ? normaliseTitle(raw, scope.providers) : null;
+}
+
 export async function fetchGenres(): Promise<Genre[]> {
   const data = await gql<{ genres: { shortName: string; translation: string }[] }>(GENRES_QUERY, {});
   return data.genres

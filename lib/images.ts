@@ -35,6 +35,14 @@ export function tmdbBackdropSet(path: string): ImageSet {
   };
 }
 
+/** TMDB posters (2:3), for films JustWatch doesn't list. */
+export function tmdbPosterSet(path: string): ImageSet {
+  return {
+    src: `${TMDB}/w342${path}`,
+    srcSet: `${TMDB}/w185${path} 185w, ${TMDB}/w342${path} 342w, ${TMDB}/w500${path} 500w`,
+  };
+}
+
 /** TMDB episode stills (16:9). */
 export function tmdbStillSet(path: string): ImageSet {
   return {

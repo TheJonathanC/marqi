@@ -12,6 +12,7 @@ import {
 } from "@/app/actions";
 import { Backdrop } from "@/components/Art";
 import { Row } from "@/components/Cards";
+import { Franchise } from "@/components/Franchise";
 import { Meta } from "@/components/Meta";
 import { Seasons } from "@/components/Seasons";
 import { Ticket } from "@/components/Ticket";
@@ -92,6 +93,17 @@ async function Detail({ params, searchParams }: PageProps<"/title/[id]">) {
           </Suspense>
         </div>
       </section>
+
+      {title.kind === "movie" && title.tmdbId && (
+        <Suspense fallback={null}>
+          <Franchise
+            titleId={title.id}
+            tmdbId={title.tmdbId}
+            collectionId={title.extras?.collection?.id ?? null}
+            searchParams={searchParams}
+          />
+        </Suspense>
+      )}
 
       {title.kind === "show" && (
         <Suspense fallback={null}>

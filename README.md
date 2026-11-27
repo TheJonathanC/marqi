@@ -14,6 +14,7 @@ Marqi is the first layer: you pick a title here, and Marqi sends you to the righ
 - **Films and Series pages.** Trays for each: For You, Because you watched, Popular, Trending, New Releases, IMDb Top Rated, genre trays ordered by your taste, and one per service you've chosen.
 - **One-click watched.** Hover any poster and press ✓ to mark it watched, or run through `/seen` to tick off what you've already seen.
 - **Seasons and episodes.** Show pages list every season with each episode's title, synopsis, runtime and air date, plus stills and ratings from TMDB.
+- **Film series.** A film's page lists its whole series as numbered posters, in watch order or release order, marking the one you're on and the ones you've seen. Sagas whose story order differs are written by hand in `lib/franchise.ts` (Star Wars with Rogue One and Solo, Middle-earth, The Hunger Games, the Wizarding World, Alien, Fast & Furious, Despicable Me). Every other series comes from its TMDB collection, in release order, which needs `TMDB_API_KEY`. Films that aren't on your services are still listed, dimmed.
 - **Trailers.** Played in an overlay inside Marqi. YouTube only loads when you press play.
 - **My List.** Save titles for later.
 - **Language filter.** Pick the original languages you watch (say, English and Malayalam) and only those show up, in every row, banner, browse page, search and recommendation.
@@ -65,7 +66,7 @@ Nothing else is required locally:
 - Without `TMDB_API_KEY`, everything runs off JustWatch data and the language heuristic.
 
 ```bash
-npm test          # link cleaner, regions/platforms, language detection, recommendation tests
+npm test          # link cleaner, regions/platforms, film series, language detection, recommendation tests
 npm run test:db   # database queries through the production Postgres driver
 npm run lint
 npm run typecheck
@@ -110,6 +111,7 @@ lib/
   catalog.ts               Shared, remotely cached catalog access
   personal.ts              Per-request profile, filtering, recommendations
   taste.ts                 Recommendation scoring (unit-tested)
+  franchise.ts             Hand-written sagas, release vs watch order (unit-tested)
   language.ts              Original-language detection (unit-tested)
   watch.ts                 Continue Watching, My List, hidden titles, prefs (SQL)
   db.ts / session.ts       Postgres/PGlite and encrypted cookie sessions

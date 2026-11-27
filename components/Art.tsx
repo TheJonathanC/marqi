@@ -1,9 +1,20 @@
 /* eslint-disable @next/next/no-img-element -- plain <img> on purpose: the CDNs
    already resize, and this keeps images free of client-side JavaScript. */
-import { backdropSet, posterSet, tmdbBackdropSet } from "@/lib/images";
+import { backdropSet, posterSet, tmdbBackdropSet, tmdbPosterSet } from "@/lib/images";
 
-export function Poster({ template, alt, eager = false }: { template: string; alt: string; eager?: boolean }) {
-  const { src, srcSet } = posterSet(template);
+/** A JustWatch poster template, or with `tmdb`, a TMDB poster path. */
+export function Poster({
+  template,
+  alt,
+  eager = false,
+  tmdb = false,
+}: {
+  template: string;
+  alt: string;
+  eager?: boolean;
+  tmdb?: boolean;
+}) {
+  const { src, srcSet } = tmdb ? tmdbPosterSet(template) : posterSet(template);
   return (
     <img
       src={src}

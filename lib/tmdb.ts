@@ -17,6 +17,13 @@ export type TmdbExtras = {
   backdrop: string | null;
   /** YouTube video ID */
   trailer: string | null;
+  /** The film series a movie belongs to, e.g. "The Hunger Games Collection" */
+  collection: { id: string; name: string } | null;
+};
+
+export type TmdbCollection = {
+  name: string;
+  parts: { tmdbId: string; title: string; date: string | null; poster: string | null }[];
 };
 
 export type TmdbEpisode = { still: string | null; rating: number | null; votes: number };
@@ -53,6 +60,7 @@ export async function getTmdbExtras(kind: Kind, tmdbId: string): Promise<TmdbExt
     overview?: string;
     backdrop_path?: string | null;
     videos?: { results?: TmdbVideo[] };
+    belongs_to_collection?: { id: number; name: string } | null;
   }>(`/${kind === "show" ? "tv" : "movie"}/${tmdbId}`, {
     language: "en-IN",
     append_to_response: "videos",
@@ -66,6 +74,29 @@ export async function getTmdbExtras(kind: Kind, tmdbId: string): Promise<TmdbExt
     overview: data.overview || null,
     backdrop: data.backdrop_path || null,
     trailer: pickTrailer(data.videos?.results ?? [], data.original_language),
+    collection: data.belongs_to_collection
+      ? { id: String(data.belongs_to_collection.id), name: data.belongs_to_collection.name }
+      : null,
+  };
+}
+
+/** A TMDB collection's films, with release dates. */
+export async function getTmdbCollection(id: string): Promise<TmdbCollection | null> {
+  "use cache: remote";
+  cacheLife("days");
+  const data = await tmdb<{
+    name?: string;
+    parts?: { id: number; title?: string; release_date?: string; poster_path?: string | null }[];
+  }>(`/collection/${encodeURIComponent(id)}`, { language: "en-IN" });
+  if (!data?.name || !data.parts) return null;
+  return {
+    name: data.name,
+    parts: data.parts.map((p) => ({
+      tmdbId: String(p.id),
+      title: p.title ?? "",
+      date: /^\d{4}-\d{2}-\d{2}$/.test(p.release_date ?? "") ? p.release_date! : null,
+      poster: p.poster_path ?? null,
+    })),
   };
 }
 
