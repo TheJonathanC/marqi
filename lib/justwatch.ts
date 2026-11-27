@@ -86,6 +86,10 @@ export type Sort = "popular" | "trending" | "imdb" | "new" | "az";
 export type TitleQuery = CatalogScope & {
   kind?: Kind;
   genre?: string;
+  /** Titles in any of these genres */
+  genres?: string[];
+  /** JustWatch certificate values, e.g. ["UA13+", "A"] (see lib/filters.ts) */
+  ageCertifications?: string[];
   sort?: Sort;
   search?: string;
   minImdbVotes?: number;
@@ -302,7 +306,9 @@ export async function fetchTitles(q: TitleQuery): Promise<Page> {
   const packages = q.providers.length ? q.providers : PROVIDER_IDS;
   const filter: Record<string, unknown> = { packages, monetizationTypes: ["FLATRATE"] };
   if (q.kind) filter.objectTypes = [q.kind === "show" ? "SHOW" : "MOVIE"];
-  if (q.genre) filter.genres = [q.genre];
+  const genres = [...(q.genres ?? []), ...(q.genre ? [q.genre] : [])];
+  if (genres.length) filter.genres = genres;
+  if (q.ageCertifications?.length) filter.ageCertifications = q.ageCertifications;
   if (q.search) filter.searchQuery = q.search;
   // Without a vote floor, IMDb sorting surfaces obscure 10/10 titles.
   const minVotes = q.minImdbVotes ?? (q.sort === "imdb" ? 10_000 : undefined);

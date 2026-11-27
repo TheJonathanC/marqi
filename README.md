@@ -11,6 +11,7 @@ Marqi is the first layer: you pick a title here, and Marqi sends you to the righ
 - **Service colours.** Netflix red, Prime blue, JioHotstar violet and Apple TV silver on poster dots, Watch tickets, Browse filters, row markers and Settings.
 - **Continue Watching.** Tracks what you open and resume, with no provider API access needed. "I'm watching" and "Already watched" on any title page set it by hand.
 - **IMDb everywhere.** Ratings on every poster, vote counts and IMDb links on title pages, and an IMDb minimum filter in Browse.
+- **Browse filters.** Pick several services, genres and age ratings at once (titles matching any of them show), plus type, IMDb minimum and sort. Age ratings use your region's certificates (U, UA 7+, UA 13+, UA 16+, A in India; G, PG, PG-13/15, 18+ in the UAE), grouped into shared age bands so a choice carries across regions. Filters live in the URL, so any view can be bookmarked.
 - **Films and Series pages.** Trays for each: For You, Because you watched, Popular, Trending, New Releases, IMDb Top Rated, genre trays ordered by your taste, and one per service you've chosen.
 - **One-click watched.** Hover any poster and press ✓ to mark it watched, or run through `/seen` to tick off what you've already seen.
 - **Seasons and episodes.** Show pages list every season with each episode's title, synopsis, runtime and air date, plus stills and ratings from TMDB.
@@ -69,7 +70,7 @@ Nothing else is required locally:
 - Without `TMDB_API_KEY`, everything runs off JustWatch data and the language heuristic.
 
 ```bash
-npm test          # link cleaner, regions/platforms, film series, language detection, recommendation tests
+npm test          # link cleaner, regions/platforms, film series, browse filters, language detection, recommendation tests
 npm run test:db   # database queries through the production Postgres driver
 npm run lint
 npm run typecheck
@@ -95,7 +96,7 @@ npm run typecheck
 ```
 app/
   (main)/page.tsx          Home: featured hero + rows (Continue Watching streams in)
-  (main)/browse/page.tsx   Filter grid; filters live in the URL
+  (main)/browse/page.tsx   Filter grid; filters live in the URL (lib/filters.ts)
   (main)/search/page.tsx   Search
   (main)/title/[id]/       Title detail: tickets, My List, Not interested, More like this
   (main)/films, series/    Tray pages for each kind (components/KindPage.tsx)
