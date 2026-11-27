@@ -14,9 +14,15 @@
   --velvet: #7a1f24;
   --velvet-deep: #4e1317;
 
-  --prv: #4fb3e8;
-  --jhs: #6a8cff;
-  --atp: #d8d8d8;
+  /* Services: a bright tone for dots and markers, a deep one for tickets (cream text stays legible). */
+  --nfx: #e50914;
+  --nfx-deep: #b20710;
+  --prv: #1a98ff;
+  --prv-deep: #0b5ea8;
+  --jhs: #c04bff;
+  --jhs-deep: #6b21a8;
+  --atp: #e8e8ed;
+  --atp-deep: #1d1d1f;
 
   --font-display: var(--font-limelight), "Georgia", serif;
   --font-body: var(--font-inter), system-ui, sans-serif;
@@ -252,6 +258,11 @@ a.imdb:hover { text-decoration: underline; text-underline-offset: 0.1875rem; }
 }
 .ticket:hover { background: #8f262c; }
 .ticket:focus-visible { outline: none; background: #8f262c; box-shadow: inset 0 0 0 0.125rem var(--gold); }
+/* Watch tickets in the service's colours, so Netflix, Prime, JioHotstar and Apple TV read apart at a glance. */
+.ticket[data-p] { background: var(--provider-deep); box-shadow: inset 0.25rem 0 0 var(--provider); }
+.ticket[data-p]:hover { background: color-mix(in oklab, var(--provider-deep) 82%, white); }
+.ticket[data-p]:focus-visible { background: color-mix(in oklab, var(--provider-deep) 82%, white); box-shadow: inset 0.25rem 0 0 var(--provider), inset 0 0 0 0.125rem var(--gold); }
+.ticket[data-p="atp"] { box-shadow: inset 0.25rem 0 0 var(--provider), inset 0 0 0 1px #e8e8ed55; }
 .ticket-main {
   padding: 0.625rem 1.125rem 0.625rem 1.375rem;
   font-weight: 600; letter-spacing: 0.02em;
@@ -287,6 +298,11 @@ a.imdb:hover { text-decoration: underline; text-underline-offset: 0.1875rem; }
 .row-hint a, .row-note a { color: var(--gold); }
 .row-head a { margin-left: auto; font-size: 0.8125rem; color: var(--cream-faint); }
 .row-head a:hover { color: var(--gold); }
+.row-head[data-p] .deco {
+  background:
+    linear-gradient(var(--provider), var(--provider)) left center / 100% 1px no-repeat,
+    radial-gradient(circle, var(--provider) 0 0.1562rem, transparent 0.1875rem) left center / 0.5rem 0.5rem no-repeat;
+}
 
 .deco {
   height: 0.5rem; flex: 1; max-width: 7.5rem; align-self: center;
@@ -366,9 +382,13 @@ a.imdb:hover { text-decoration: underline; text-underline-offset: 0.1875rem; }
   width: 0.4375rem; height: 0.4375rem; border-radius: 50%;
   background: var(--provider, var(--cream-dim));
 }
-.badge[data-p="prv"] { --provider: var(--prv); }
-.badge[data-p="jhs"] { --provider: var(--jhs); }
-.badge[data-p="atp"] { --provider: var(--atp); }
+.badge { flex: none; box-shadow: 0 0 0 1px #0f0d0b; }
+
+/* Any element tagged with a service picks up its colours. */
+[data-p="nfx"] { --provider: var(--nfx); --provider-deep: var(--nfx-deep); }
+[data-p="prv"] { --provider: var(--prv); --provider-deep: var(--prv-deep); }
+[data-p="jhs"] { --provider: var(--jhs); --provider-deep: var(--jhs-deep); }
+[data-p="atp"] { --provider: var(--atp); --provider-deep: var(--atp-deep); }
 
 /* Continue Watching: landscape cards straight to the provider */
 .row-track.wide { grid-auto-columns: min(17.5rem, 78vw); }
@@ -381,6 +401,9 @@ a.imdb:hover { text-decoration: underline; text-underline-offset: 0.1875rem; }
 .cw-art img { width: 100%; height: 100%; object-fit: cover; }
 .cw-card > a:hover .cw-art, .cw-card > a:focus-visible .cw-art { border-color: var(--gold); }
 .cw-card > a:focus-visible { outline: none; }
+.cw-card .card-sub .badge { width: 0.5rem; height: 0.5rem; }
+/* Saved on a service that isn't in this region: still listed, but dimmed. */
+.cw-art[data-away] img { opacity: 0.45; filter: grayscale(0.6); }
 .cw-tools {
   position: absolute; top: 0.375rem; right: 0.375rem; display: flex; gap: 0.25rem;
   opacity: 0; transition: opacity 0.15s;
@@ -437,6 +460,13 @@ a.imdb:hover { text-decoration: underline; text-underline-offset: 0.1875rem; }
 }
 .pill:hover { color: var(--cream); border-color: var(--cream-faint); }
 .pill[aria-current="true"] { color: var(--bg); background: var(--gold); border-color: var(--gold); }
+.pill[data-p] { display: inline-flex; align-items: center; gap: 0.4375rem; }
+.pill[data-p]::before {
+  content: ""; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--provider);
+}
+.pill[data-p]:hover { border-color: var(--provider); }
+.pill[data-p][aria-current="true"] { color: var(--cream); background: var(--provider-deep); border-color: var(--provider); }
+.pill[data-p="atp"][aria-current="true"]::before { box-shadow: 0 0 0 1px var(--bg); }
 
 .filter-note { padding: 0 var(--gutter) 1.125rem; margin-top: -0.75rem; font-size: 0.8125rem; color: var(--cream-faint); }
 .filter-note a { color: var(--gold); }
@@ -552,6 +582,29 @@ a.imdb:hover { text-decoration: underline; text-underline-offset: 0.1875rem; }
 .hidden-list { list-style: none; display: grid; gap: 0.5rem; }
 .hidden-list li { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.5rem 0; border-bottom: 1px solid var(--line); }
 .settings-link { color: var(--cream-faint); font-size: 1rem; }
+.region-chip {
+  padding: 0.1875rem 0.625rem; border: 1px solid var(--line); border-radius: 999px;
+  font-size: 0.6875rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--cream-dim);
+}
+.region-chip:hover { color: var(--gold); border-color: var(--gold); }
+.region-switch { display: flex; flex-wrap: wrap; gap: 0.625rem; margin-bottom: 0.5rem; }
+.region-switch button {
+  display: grid; gap: 0.25rem; text-align: left; cursor: pointer; font: inherit;
+  padding: 0.625rem 1rem; min-width: 13rem; border-radius: var(--radius);
+  background: var(--bg-raised); border: 1px solid var(--line); color: var(--cream-dim);
+}
+.region-switch button strong { color: var(--cream); font-weight: 600; font-size: 0.9375rem; }
+.region-switch button small { display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem; font-size: 0.75rem; }
+.region-switch button:hover { border-color: var(--cream-faint); }
+.region-switch button[aria-pressed="true"] { border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); }
+.region-switch button[aria-pressed="true"] strong::after { content: " · Current"; color: var(--gold); font-weight: 500; font-size: 0.75rem; letter-spacing: 0.08em; }
+.provider-chip span { display: inline-flex; align-items: center; gap: 0.5rem; }
+.provider-chip span::after { content: ""; order: -1; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--provider); }
+.provider-chip input:checked + span { background: var(--provider-deep); border-color: var(--provider); color: var(--cream); }
+.provider-chip input:checked + span::before { content: "✓"; order: 1; }
+.provider-chip small { color: var(--cream-faint); font-weight: 400; font-size: 0.6875rem; letter-spacing: 0.06em; }
+.provider-chip input:checked + span small { color: #f3e9d2bb; }
+.settings-note { border-left: 2px solid var(--jhs); padding-left: 0.75rem; }
 .settings-link:hover { color: var(--gold); }
 
 /* ---------- Login ---------- */

@@ -8,8 +8,8 @@ import { BannerSkeleton } from "@/components/Hero";
 import { RowsSkeleton } from "@/components/RowsSkeleton";
 import { getTitles } from "@/lib/catalog";
 import { languageName } from "@/lib/language";
-import { forRow, getDiscoveries, getProfile, getRecommendations, markWatched, visible } from "@/lib/personal";
-import { PROVIDERS, PROVIDER_IDS } from "@/lib/providers";
+import { forRow, getDiscoveries, getProfile, getRecommendations, getScope, markWatched, visible } from "@/lib/personal";
+import { PROVIDERS, REGIONS, providerList, type Scope } from "@/lib/providers";
 import type { Profile } from "@/lib/watch";
 
 export default function Home() {
@@ -28,27 +28,29 @@ export default function Home() {
 }
 
 async function HomeRows() {
-  const profile = await getProfile();
+  const [profile, scope] = await Promise.all([getProfile(), getScope()]);
+  const { catalog } = scope;
   const [films, series, top, ...byProvider] = await Promise.all([
-    getTitles({ kind: "movie", first: 40 }),
-    getTitles({ kind: "show", first: 40 }),
-    getTitles({ sort: "imdb", minImdbVotes: 50_000, first: 40 }),
-    ...PROVIDER_IDS.map((p) => getTitles({ providers: [p], first: 40 })),
+    getTitles({ ...catalog, kind: "movie", first: 40 }),
+    getTitles({ ...catalog, kind: "show", first: 40 }),
+    getTitles({ ...catalog, sort: "imdb", minImdbVotes: 50_000, first: 40 }),
+    ...catalog.providers.map((p) => getTitles({ ...catalog, providers: [p], first: 40 })),
   ]);
 
   return (
     <>
       {profile && <ContinueWatching profile={profile} />}
       {profile && <MyListRow profile={profile} />}
-      {profile && <ModeBar profile={profile} />}
+      {profile && <ModeBar profile={profile} scope={scope} />}
       {profile && (profile.prefs.discover ? <DiscoverRows profile={profile} /> : <ForYouRows profile={profile} />)}
 
       <Row heading="Now Showing" titles={forRow(films.titles, profile)} href="/browse?kind=movie" eager />
       <Row heading="Serials" titles={forRow(series.titles, profile)} href="/browse?kind=show" />
       <Row heading="IMDb Top Rated" titles={forRow(top.titles, profile)} href="/browse?sort=imdb" />
-      {PROVIDER_IDS.map((p, i) => (
+      {catalog.providers.map((p, i) => (
         <Row
           key={p}
+          provider={p}
           heading={`Playing at ${PROVIDERS[p].name}`}
           titles={forRow(byProvider[i].titles, profile)}
           href={`/browse?provider=${p}`}
@@ -69,8 +71,8 @@ function MyListRow({ profile }: { profile: Profile }) {
   return <Row heading="My List" titles={titles} href="/list" />;
 }
 
-/** For You ⇄ Discover switch, plus a reminder of the language filter. */
-function ModeBar({ profile }: { profile: Profile }) {
+/** For You ⇄ Discover switch, plus a reminder of the region, services and language filter. */
+function ModeBar({ profile, scope }: { profile: Profile; scope: Scope }) {
   const { discover, languages } = profile.prefs;
   return (
     <div className="mode-bar">
@@ -90,6 +92,10 @@ function ModeBar({ profile }: { profile: Profile }) {
       <Link href="/seen" className="mode-langs">
         Mark what you&apos;ve seen
       </Link>
+      <Link href="/settings#region" className="mode-langs">
+        {REGIONS[scope.region].short} · {profile.prefs.providers.length ? providerList(scope.catalog.providers) : "All services"}
+        {scope.unavailable.length > 0 && ` (${providerList(scope.unavailable)} is India only)`} · Edit
+      </Link>
       <Link href="/settings" className="mode-langs">
         {languages.length ? `Showing ${languages.map((l) => languageName(l)).join(", ")}` : "All languages"}{" "}
         · Edit
@@ -101,7 +107,8 @@ function ModeBar({ profile }: { profile: Profile }) {
 async function ForYouRows({ profile }: { profile: Profile }) {
   const { forYou, because } = await getRecommendations(profile);
   if (forYou.length === 0) {
-    const starter = await getTitles({ sort: "trending", minImdbScore: 7, minImdbVotes: 5_000, first: 40 });
+    const { catalog } = await getScope();
+    const starter = await getTitles({ ...catalog, sort: "trending", minImdbScore: 7, minImdbVotes: 5_000, first: 40 });
     return (
       <Row
         heading="Start Here"

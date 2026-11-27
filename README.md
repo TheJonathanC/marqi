@@ -1,15 +1,17 @@
 # Marqi
 
-A personal streaming launcher for India. Browse, filter, and launch movies and TV shows on **Prime Video**, **JioHotstar**, and **Apple TV** without opening the heavy official apps.
+A personal streaming launcher for India and the UAE. Browse, filter, and launch movies and TV shows on **Netflix**, **Prime Video**, **JioHotstar**, and **Apple TV** without opening the heavy official apps.
 
-Marqi is the first layer: you pick a title here, and Marqi sends you to the right page on the provider's site through a redirect that cleans the link and checks that it lands on the Indian storefront.
+Marqi is the first layer: you pick a title here, and Marqi sends you to the right page on the provider's site through a redirect that cleans the link and checks that it lands on the storefront for your region.
 
-- **India only.** Every query is locked to `IN`.
-- **Subscriptions only.** `flatrate` offers from exactly three packages. Rentals, purchases and Prime add-on channels (Lionsgate Play, MGM+, …) are removed.
-- **Storefront guard.** `amazon.com` and other non-India links are rejected, and Apple TV links are rewritten to `/in/`. Tracking params are stripped, while Prime's `gti` is kept.
+- **Regions.** India or the UAE, switched in Settings (the header shows which). Every query uses that country. JioHotstar only exists in India, so it isn't offered in the UAE.
+- **Your platforms.** Pick which of the four services to show; only their titles and Watch tickets appear. The choice is kept across regions: choose JioHotstar and Netflix, fly to Dubai, and you see Netflix; come back and JioHotstar is there again. If none of your platforms exist in the region (only JioHotstar, in the UAE), Marqi shows every service there and says so.
+- **Subscriptions only.** `flatrate` offers from exactly these four packages. Rentals, purchases and Prime add-on channels (Lionsgate Play, MGM+, …) are removed.
+- **Storefront guard.** `amazon.com` and other foreign Amazon links are rejected (`amazon.in` only in India), Apple TV links are rewritten to `/in/` or `/ae/`, Netflix locale prefixes are dropped, and JioHotstar links are refused outside India. Tracking params are stripped, while Prime's `gti` is kept.
+- **Service colours.** Netflix red, Prime blue, JioHotstar violet and Apple TV silver on poster dots, Watch tickets, Browse filters, row markers and Settings.
 - **Continue Watching.** Tracks what you open and resume, with no provider API access needed. "I'm watching" and "Already watched" on any title page set it by hand.
 - **IMDb everywhere.** Ratings on every poster, vote counts and IMDb links on title pages, and an IMDb minimum filter in Browse.
-- **Films and Series pages.** Trays for each: For You, Because you watched, Popular, Trending, New Releases, IMDb Top Rated, genre trays ordered by your taste, and one per service.
+- **Films and Series pages.** Trays for each: For You, Because you watched, Popular, Trending, New Releases, IMDb Top Rated, genre trays ordered by your taste, and one per service you've chosen.
 - **One-click watched.** Hover any poster and press ✓ to mark it watched, or run through `/seen` to tick off what you've already seen.
 - **Seasons and episodes.** Show pages list every season with each episode's title, synopsis, runtime and air date, plus stills and ratings from TMDB.
 - **Trailers.** Played in an overlay inside Marqi. YouTube only loads when you press play.
@@ -29,11 +31,11 @@ Browser ──► Next.js (Vercel, bom1)
               ├─ lib/tmdb.ts        TMDB (optional): taglines, original-resolution backdrops
               ├─ lib/catalog.ts     "use cache" wrappers. Catalog cached for hours.
               │
-              ├─ /go/[offerId]      Smart redirect: re-resolve offer → clean → India check → log click → 302
+              ├─ /go/[offerId]      Smart redirect: re-resolve offer → clean → storefront check → log click → 302
               └─ Postgres           users + watch_entries (Continue Watching)
 ```
 
-**Smart redirect.** Watch buttons point at `/go/<offerId>`, never at a raw URL, so Marqi can't be used as an open redirect. The route decodes the JustWatch offer ID, re-fetches the title's current offers (cached for minutes), cleans the URL with `lib/links.ts`, and falls back to the provider's search page if the link is missing or points at the wrong storefront.
+**Smart redirect.** Watch buttons point at `/go/<offerId>`, never at a raw URL, so Marqi can't be used as an open redirect. The route decodes the JustWatch offer ID, re-fetches the title's current offers in your current region (cached for minutes), cleans the URL with `lib/links.ts`, and falls back to the provider's search page if the link is missing or points at the wrong storefront. A Continue Watching card saved in one region resumes on the other region's storefront. One for an India-only service seen from the UAE is dimmed and opens the title page, which says where the title is streaming ("On JioHotstar in India").
 
 **Continue Watching.** Watch links open in a new tab.
 
@@ -63,7 +65,7 @@ Nothing else is required locally:
 - Without `TMDB_API_KEY`, everything runs off JustWatch data and the language heuristic.
 
 ```bash
-npm test          # link cleaner, language detection, recommendation tests
+npm test          # link cleaner, regions/platforms, language detection, recommendation tests
 npm run test:db   # database queries through the production Postgres driver
 npm run lint
 npm run typecheck
@@ -95,14 +97,14 @@ app/
   (main)/films, series/    Tray pages for each kind (components/KindPage.tsx)
   (main)/seen/             Quick "mark what you've seen" grid
   (main)/list/             My List
-  (main)/settings/         Language filter, Discover mode, hidden titles
+  (main)/settings/         Region, platforms, language filter, Discover mode, hidden titles
   go/[offerId]/route.ts    Smart redirect
   auth/*                   GitHub OAuth (login, callback, logout)
   login/page.tsx           Sign-in page
   actions.ts               Server actions for Continue Watching
 components/                Server components + one tiny client script (LauncherScripts)
 lib/
-  providers.ts             The three services and their JustWatch package IDs
+  providers.ts             Services, regions, and what a user's choice resolves to (unit-tested)
   justwatch.ts             All JustWatch GraphQL (unofficial API, kept in one place)
   links.ts                 URL cleaning + storefront guard (unit-tested)
   catalog.ts               Shared, remotely cached catalog access

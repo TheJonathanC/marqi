@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { getProfile } from "@/lib/personal";
+import { REGIONS, resolveScope } from "@/lib/providers";
 import { getViewer } from "@/lib/session";
 
 export function Header() {
@@ -43,10 +45,23 @@ async function UserMenu() {
         <img src={user.avatarUrl} alt="" width={28} height={28} />
       )}
       <span>{user.name ?? user.login}</span>
+      <Suspense fallback={null}>
+        <RegionChip />
+      </Suspense>
       <Link href="/settings" className="settings-link" aria-label="Settings" title="Settings">
         ⚙
       </Link>
       <button type="submit">Sign out</button>
     </form>
+  );
+}
+
+/** Where you're browsing from, always in view so a trip abroad is one tap to fix. */
+async function RegionChip() {
+  const { region } = resolveScope((await getProfile())?.prefs);
+  return (
+    <Link href="/settings#region" className="region-chip" title={`Showing what's on in ${REGIONS[region].name} · Change`}>
+      {REGIONS[region].short}
+    </Link>
   );
 }

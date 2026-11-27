@@ -10,11 +10,14 @@ import {
   type Title,
   type TitleQuery,
 } from "./justwatch";
+import type { CatalogScope } from "./providers";
 import { getTmdbExtras, getTmdbSeason, tmdbConfigured, type TmdbEpisode } from "./tmdb";
 
 // Cached entry points for everything the UI reads. These are shared by every
 // user (personal filtering happens per request on top, in lib/personal.ts), so
 // they live in the remote cache: one JustWatch call serves every instance.
+// Region and services are part of every call, so each combination is cached
+// on its own.
 
 /** Swap the heuristic language for TMDB's exact one when a key is configured. */
 async function withLanguages<T extends Title>(titles: T[]): Promise<T[]> {
@@ -36,11 +39,11 @@ export async function getTitles(q: TitleQuery) {
   return { ...page, titles: await withLanguages(page.titles) };
 }
 
-export async function getTitle(id: string) {
+export async function getTitle(id: string, scope: CatalogScope) {
   "use cache: remote";
   cacheLife("hours");
   cacheTag("catalog", `title:${id}`);
-  const title = await fetchTitle(id);
+  const title = await fetchTitle(id, scope);
   if (!title) return null;
   const extras = title.tmdbId ? await getTmdbExtras(title.kind, title.tmdbId) : null;
   return { ...title, language: extras?.language ?? title.language, extras };
@@ -62,18 +65,18 @@ export async function getEpisodes(
   return episodes.map((e) => ({ ...e, ...extras?.[e.number] }));
 }
 
-export async function getSimilar(id: string) {
+export async function getSimilar(id: string, scope: CatalogScope) {
   "use cache: remote";
   cacheLife("days");
   cacheTag("catalog");
-  return withLanguages(await fetchSimilar(id));
+  return withLanguages(await fetchSimilar(id, scope));
 }
 
 /** Short-lived lookup used at click time, so a title that left a service is caught. */
-export async function getFreshOffers(id: string) {
+export async function getFreshOffers(id: string, scope: CatalogScope) {
   "use cache";
   cacheLife("minutes");
-  return fetchTitle(id);
+  return fetchTitle(id, scope);
 }
 
 export async function getGenres() {

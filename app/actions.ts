@@ -4,11 +4,13 @@ import { refresh } from "next/cache";
 import { getTitle } from "@/lib/catalog";
 import { isTitleId } from "@/lib/justwatch";
 import { LANGUAGES } from "@/lib/language";
+import { PROVIDER_IDS, isProviderId, isRegionId, resolveScope } from "@/lib/providers";
 import { getSessionUser } from "@/lib/session";
 import {
   addToList,
   clearStatus,
   hideTitle,
+  loadPrefs,
   markStatus,
   recordReturn,
   removeFromList,
@@ -25,6 +27,12 @@ export async function reportReturn(titleId: string, awayMs: number) {
   if (!user || !isTitleId(titleId) || !Number.isFinite(awayMs) || awayMs < 0) return;
   await recordReturn(user.id, titleId, awayMs);
   refresh();
+}
+
+/** A title as the user sees it: in their region, with offers from their services. */
+async function titleFor(userId: string, titleId: string) {
+  const { catalog } = resolveScope(await loadPrefs(userId));
+  return getTitle(titleId, catalog);
 }
 
 async function withTitle(formData: FormData, fn: (userId: string, titleId: string) => Promise<void>) {
@@ -45,14 +53,14 @@ export async function dismissEntry(formData: FormData) {
 
 export async function markWatchingAction(formData: FormData) {
   await withTitle(formData, async (userId, titleId) => {
-    const title = await getTitle(titleId);
+    const title = await titleFor(userId, titleId);
     if (title) await markStatus(userId, title, "watching");
   });
 }
 
 export async function markWatchedAction(formData: FormData) {
   await withTitle(formData, async (userId, titleId) => {
-    const title = await getTitle(titleId);
+    const title = await titleFor(userId, titleId);
     if (title) await markStatus(userId, title, "finished");
   });
 }
@@ -62,7 +70,7 @@ export async function setWatchedAction(titleId: string, watched: boolean) {
   const user = await getSessionUser();
   if (!user || !isTitleId(titleId)) return;
   if (watched) {
-    const title = await getTitle(titleId);
+    const title = await titleFor(user.id, titleId);
     if (title) await markStatus(user.id, title, "finished");
   } else {
     await clearStatus(user.id, titleId);
@@ -76,7 +84,7 @@ export async function clearWatchAction(formData: FormData) {
 
 export async function addToListAction(formData: FormData) {
   await withTitle(formData, async (userId, titleId) => {
-    const title = await getTitle(titleId);
+    const title = await titleFor(userId, titleId);
     if (title) await addToList(userId, title);
   });
 }
@@ -87,7 +95,7 @@ export async function removeFromListAction(formData: FormData) {
 
 export async function hideTitleAction(formData: FormData) {
   await withTitle(formData, async (userId, titleId) => {
-    const title = await getTitle(titleId);
+    const title = await titleFor(userId, titleId);
     if (title) await hideTitle(userId, title);
   });
 }
@@ -104,6 +112,24 @@ export async function saveLanguagesAction(formData: FormData) {
     .map(String)
     .filter((code) => code in LANGUAGES);
   await savePrefs(user.id, { languages: [...new Set(languages)] });
+  refresh();
+}
+
+export async function saveProvidersAction(formData: FormData) {
+  const user = await getSessionUser();
+  if (!user) return;
+  const chosen = formData.getAll("provider").map(String).filter(isProviderId);
+  // Ticking every service is the same as ticking none: show them all, including any added later.
+  const providers = PROVIDER_IDS.filter((p) => chosen.includes(p));
+  await savePrefs(user.id, { providers: providers.length === PROVIDER_IDS.length ? [] : providers });
+  refresh();
+}
+
+export async function setRegionAction(formData: FormData) {
+  const user = await getSessionUser();
+  const region = formData.get("region");
+  if (!user || !isRegionId(region)) return;
+  await savePrefs(user.id, { region });
   refresh();
 }
 

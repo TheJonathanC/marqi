@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import type { Offer } from "@/lib/justwatch";
 import { languageName } from "@/lib/language";
-import { PROVIDERS } from "@/lib/providers";
+import { PROVIDERS, type ProviderId } from "@/lib/providers";
 import { Poster } from "./Art";
 
 /** What a poster card needs; satisfied by catalog titles and My List entries. */
@@ -75,9 +75,20 @@ export function ProviderDots({ offers }: { offers: Offer[] }) {
   );
 }
 
-export function RowHead({ heading, href, children }: { heading: string; href?: string; children?: ReactNode }) {
+export function RowHead({
+  heading,
+  href,
+  provider,
+  children,
+}: {
+  heading: string;
+  href?: string;
+  /** Tints the heading's marker in the service's colour, for per-service rows */
+  provider?: ProviderId;
+  children?: ReactNode;
+}) {
   return (
-    <div className="row-head">
+    <div className="row-head" data-p={provider}>
       <h2>{heading}</h2>
       <span className="deco" aria-hidden />
       {children}
@@ -92,17 +103,19 @@ export function Row({
   href,
   eager,
   note,
+  provider,
 }: {
   heading: string;
   titles: CardTitle[];
   href?: string;
   eager?: boolean;
   note?: ReactNode;
+  provider?: ProviderId;
 }) {
   if (titles.length === 0) return null;
   return (
     <section aria-label={heading}>
-      <RowHead heading={heading} href={href}>
+      <RowHead heading={heading} href={href} provider={provider}>
         {note && <span className="row-note">{note}</span>}
       </RowHead>
       <div className="row-track" data-row>

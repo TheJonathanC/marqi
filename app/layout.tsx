@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: { default: "Marqi", template: "%s · Marqi" },
-  description: "Your personal picture palace for Prime Video, JioHotstar and Apple TV in India.",
+  description: "Your personal picture palace for Netflix, Prime Video, JioHotstar and Apple TV in India and the UAE.",
   robots: { index: false, follow: false },
 };
 

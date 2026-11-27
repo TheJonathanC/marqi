@@ -1,14 +1,14 @@
 import { getTitles } from "@/lib/catalog";
 import type { Kind, Title } from "@/lib/justwatch";
-import { forRow, getProfile, getRecommendations } from "@/lib/personal";
+import { forRow, getProfile, getRecommendations, getScope } from "@/lib/personal";
 import { Banners, type Feature } from "./Hero";
 
 /** Banners: picks for you first (unless in Discover mode), then trending titles that rate well. */
 export async function Featured({ kind }: { kind?: Kind }) {
-  const profile = await getProfile();
+  const [profile, { catalog }] = await Promise.all([getProfile(), getScope()]);
   const [trending, acclaimed] = await Promise.all([
-    getTitles({ kind, sort: "trending", first: 40 }),
-    getTitles({ kind, sort: "popular", minImdbScore: 7.5, minImdbVotes: 5_000, first: 40 }),
+    getTitles({ ...catalog, kind, sort: "trending", first: 40 }),
+    getTitles({ ...catalog, kind, sort: "popular", minImdbScore: 7.5, minImdbVotes: 5_000, first: 40 }),
   ]);
   const recs = profile && !profile.prefs.discover ? (await getRecommendations(profile, kind)).forYou : [];
 

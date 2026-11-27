@@ -1,6 +1,6 @@
 import "server-only";
 import { getDb } from "./db";
-import { BOUNCE_MINUTES, type ProviderId } from "./providers";
+import { BOUNCE_MINUTES, DEFAULT_REGION, isRegionId, type ProviderId, type RegionId } from "./providers";
 import type { SessionUser } from "./session";
 import type { Kind, Title } from "./justwatch";
 
@@ -51,8 +51,12 @@ export type ListEntry = {
   addedAt: string;
 };
 
-/** `languages`: original languages to show; empty means all of them. */
-export type Prefs = { languages: string[]; discover: boolean };
+/**
+ * `languages`: original languages to show; empty means all of them.
+ * `providers`: services to show; empty means every one in the region. Kept as
+ * chosen when the region changes (see resolveScope in lib/providers.ts).
+ */
+export type Prefs = { languages: string[]; discover: boolean; region: RegionId; providers: ProviderId[] };
 
 export type Profile = {
   prefs: Prefs;
@@ -180,14 +184,43 @@ export async function unhideTitle(userId: string, titleId: string) {
 export async function savePrefs(userId: string, prefs: Partial<Prefs>) {
   const db = await getDb();
   await db?.query(
-    `insert into user_prefs (user_id, languages, discover)
-     values ($1, coalesce(${TEXT_ARRAY(2)}, '{}'), coalesce($3, false))
+    `insert into user_prefs (user_id, languages, discover, region, providers)
+     values ($1, coalesce(${TEXT_ARRAY(2)}, '{}'), coalesce($3, false), $4, coalesce(${TEXT_ARRAY(5)}, '{}'))
      on conflict (user_id) do update set
        languages = case when $2::text is null then user_prefs.languages else excluded.languages end,
        discover = coalesce($3, user_prefs.discover),
+       region = coalesce($4, user_prefs.region),
+       providers = case when $5::text is null then user_prefs.providers else excluded.providers end,
        updated_at = now()`,
-    [userId, prefs.languages ? JSON.stringify(prefs.languages) : null, prefs.discover ?? null],
+    [
+      userId,
+      prefs.languages ? JSON.stringify(prefs.languages) : null,
+      prefs.discover ?? null,
+      prefs.region ?? null,
+      prefs.providers ? JSON.stringify(prefs.providers) : null,
+    ],
   );
+}
+
+type PrefsRow = { languages: string[]; discover: boolean; region: string | null; providers: string[] | null };
+
+function toPrefs(row: PrefsRow | null): Prefs {
+  return {
+    languages: row?.languages ?? [],
+    discover: row?.discover ?? false,
+    region: isRegionId(row?.region) ? row.region : DEFAULT_REGION,
+    providers: (row?.providers ?? []) as ProviderId[],
+  };
+}
+
+/** Just the preferences, for actions and the redirect that don't need the whole profile. */
+export async function loadPrefs(userId: string): Promise<Prefs> {
+  const db = await getDb();
+  const rows =
+    (await db?.query<PrefsRow>(`select languages, discover, region, providers from user_prefs where user_id = $1`, [
+      userId,
+    ])) ?? [];
+  return toPrefs(rows[0] ?? null);
 }
 
 /** Everything personal about a user, in one round trip. */
@@ -195,13 +228,13 @@ export async function loadProfile(userId: string): Promise<Profile | null> {
   const db = await getDb();
   if (!db) return null;
   const [row] = await db.query<{
-    prefs: { languages: string[]; discover: boolean } | null;
+    prefs: PrefsRow | null;
     hidden: { title_id: string; title: string; genres: string[] }[];
     watchlist: Record<string, never>[];
     history: Record<string, never>[];
   }>(
     `select
-       (select json_build_object('languages', languages, 'discover', discover)
+       (select json_build_object('languages', languages, 'discover', discover, 'region', region, 'providers', providers)
           from user_prefs where user_id = $1) as prefs,
        (select coalesce(json_agg(json_build_object('title_id', title_id, 'title', title, 'genres', genres)
           order by created_at desc), '[]') from hidden_titles where user_id = $1) as hidden,
@@ -211,11 +244,11 @@ export async function loadProfile(userId: string): Promise<Profile | null> {
     [userId],
   );
   const json = <T>(v: unknown): T => (typeof v === "string" ? JSON.parse(v) : v) as T;
-  const prefs = json<{ languages: string[]; discover: boolean } | null>(row.prefs);
+  const prefs = json<PrefsRow | null>(row.prefs);
   type Row = Record<string, string & number & string[]>;
 
   return {
-    prefs: { languages: prefs?.languages ?? [], discover: prefs?.discover ?? false },
+    prefs: toPrefs(prefs),
     hidden: json<{ title_id: string; title: string; genres: string[] }[]>(row.hidden).map((h) => ({
       titleId: h.title_id,
       title: h.title,

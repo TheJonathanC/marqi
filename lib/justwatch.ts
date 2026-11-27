@@ -1,6 +1,15 @@
 import "server-only";
 import { guessLanguage } from "./language";
-import { COUNTRY, PROVIDERS, PROVIDER_IDS, isProviderId, type ProviderId } from "./providers";
+import {
+  DEFAULT_REGION,
+  PROVIDERS,
+  PROVIDER_IDS,
+  isProviderId,
+  isRegionId,
+  type CatalogScope,
+  type ProviderId,
+  type RegionId,
+} from "./providers";
 
 // JustWatch's GraphQL API is unofficial and can change without notice. Every
 // query and every assumption about its shape lives in this file.
@@ -74,8 +83,7 @@ export type TitleDetail = Title & {
 
 export type Sort = "popular" | "trending" | "imdb" | "new" | "az";
 
-export type TitleQuery = {
-  providers?: ProviderId[];
+export type TitleQuery = CatalogScope & {
   kind?: Kind;
   genre?: string;
   sort?: Sort;
@@ -213,11 +221,11 @@ type RawTitle = {
   offers: RawOffer[] | null;
 };
 
-async function gql<T>(query: string, variables: Record<string, unknown>): Promise<T> {
+async function gql<T>(query: string, variables: Record<string, unknown>, country: RegionId = DEFAULT_REGION): Promise<T> {
   const res = await fetch(ENDPOINT, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ query, variables: { country: COUNTRY, ...variables } }),
+    body: JSON.stringify({ query, variables: { country, ...variables } }),
     signal: AbortSignal.timeout(10_000),
   });
   if (!res.ok) throw new Error(`JustWatch responded ${res.status}`);
@@ -229,14 +237,15 @@ async function gql<T>(query: string, variables: Record<string, unknown>): Promis
 
 // --- Normalisation ----------------------------------------------------------
 
-function normaliseOffers(raw: RawOffer[] | null): Offer[] {
+function normaliseOffers(raw: RawOffer[] | null, providers: ProviderId[]): Offer[] {
   const best = new Map<ProviderId, RawOffer>();
   for (const o of raw ?? []) {
     // Belt and braces: the query already filters, but never let a rental,
-    // purchase or add-on channel through if JustWatch changes behaviour.
+    // purchase, add-on channel or unchosen service through if JustWatch
+    // changes behaviour.
     if (o.monetizationType !== "FLATRATE") continue;
     if (!ALLOWED_PACKAGE_IDS.has(o.package.packageId)) continue;
-    if (!isProviderId(o.package.shortName) || !o.standardWebURL) continue;
+    if (!isProviderId(o.package.shortName) || !providers.includes(o.package.shortName) || !o.standardWebURL) continue;
     const current = best.get(o.package.shortName);
     if (!current || (QUALITY_RANK[o.presentationType] ?? 0) > (QUALITY_RANK[current.presentationType] ?? 0)) {
       best.set(o.package.shortName, o);
@@ -250,7 +259,7 @@ function normaliseOffers(raw: RawOffer[] | null): Offer[] {
   });
 }
 
-function normaliseTitle(raw: RawTitle): Title {
+function normaliseTitle(raw: RawTitle, providers: ProviderId[]): Title {
   const c = raw.content;
   const audio = (raw.offers ?? [])
     .filter((o) => o.monetizationType === "FLATRATE" && ALLOWED_PACKAGE_IDS.has(o.package.packageId))
@@ -275,7 +284,7 @@ function normaliseTitle(raw: RawTitle): Title {
       productionCountries: c.productionCountries,
       audioLanguages: audio,
     }),
-    offers: normaliseOffers(raw.offers),
+    offers: normaliseOffers(raw.offers, providers),
   };
 }
 
@@ -290,7 +299,7 @@ const SORTS: Record<Sort, string> = {
 // --- Public API -------------------------------------------------------------
 
 export async function fetchTitles(q: TitleQuery): Promise<Page> {
-  const packages = q.providers?.length ? q.providers : PROVIDER_IDS;
+  const packages = q.providers.length ? q.providers : PROVIDER_IDS;
   const filter: Record<string, unknown> = { packages, monetizationTypes: ["FLATRATE"] };
   if (q.kind) filter.objectTypes = [q.kind === "show" ? "SHOW" : "MOVIE"];
   if (q.genre) filter.genres = [q.genre];
@@ -313,23 +322,23 @@ export async function fetchTitles(q: TitleQuery): Promise<Page> {
     after: q.after ?? null,
     sortBy: SORTS[q.sort ?? "popular"],
     filter,
-  });
+  }, q.country);
 
   const { edges, pageInfo, totalCount } = data.popularTitles;
   return {
-    titles: edges.map((e) => normaliseTitle(e.node)).filter((t) => t.offers.length > 0),
+    titles: edges.map((e) => normaliseTitle(e.node, packages)).filter((t) => t.offers.length > 0),
     nextCursor: pageInfo.hasNextPage ? pageInfo.endCursor : null,
     total: totalCount,
   };
 }
 
-export async function fetchTitle(id: string): Promise<TitleDetail | null> {
-  const data = await gql<{ node: RawTitle | null }>(DETAIL_QUERY, { id, packages: PROVIDER_IDS });
+export async function fetchTitle(id: string, scope: CatalogScope): Promise<TitleDetail | null> {
+  const data = await gql<{ node: RawTitle | null }>(DETAIL_QUERY, { id, packages: scope.providers }, scope.country);
   const raw = data.node;
   if (!raw?.content) return null;
   const credits = raw.content.credits ?? [];
   return {
-    ...normaliseTitle(raw),
+    ...normaliseTitle(raw, scope.providers),
     cast: credits
       .filter((c) => c.role === "ACTOR")
       .slice(0, 12)
@@ -383,13 +392,15 @@ export function isSeasonId(id: string): boolean {
   return /^tss\d+$/.test(id);
 }
 
-export async function fetchSimilar(id: string, limit = 24): Promise<Title[]> {
-  const data = await gql<{ node: { similarTitles?: RawTitle[] } | null }>(SIMILAR_QUERY, {
-    id,
-    packages: PROVIDER_IDS,
-    limit,
-  });
-  return (data.node?.similarTitles ?? []).map(normaliseTitle).filter((t) => t.offers.length > 0);
+export async function fetchSimilar(id: string, scope: CatalogScope, limit = 24): Promise<Title[]> {
+  const data = await gql<{ node: { similarTitles?: RawTitle[] } | null }>(
+    SIMILAR_QUERY,
+    { id, packages: scope.providers, limit },
+    scope.country,
+  );
+  return (data.node?.similarTitles ?? [])
+    .map((t) => normaliseTitle(t, scope.providers))
+    .filter((t) => t.offers.length > 0);
 }
 
 export async function fetchGenres(): Promise<Genre[]> {
@@ -401,20 +412,20 @@ export async function fetchGenres(): Promise<Genre[]> {
 }
 
 /**
- * Offer IDs are base64 of `of|<titleId>:IN:<provider>:flatrate:<quality>`.
+ * Offer IDs are base64 of `of|<titleId>:<country>:<provider>:flatrate:<quality>`.
  * Decoding lets /go re-resolve the current URL server-side instead of
  * trusting anything the browser sends.
  */
-export function parseOfferId(offerId: string): { titleId: string; provider: ProviderId } | null {
+export function parseOfferId(offerId: string): { titleId: string; country: RegionId; provider: ProviderId } | null {
   let decoded: string;
   try {
     decoded = Buffer.from(offerId, "base64").toString("utf8");
   } catch {
     return null;
   }
-  const m = decoded.match(/^of\|(t[ms]\d+):IN:([a-z]+):flatrate:[a-z0-9_]+$/i);
-  if (!m || !isProviderId(m[2])) return null;
-  return { titleId: m[1], provider: m[2] };
+  const m = decoded.match(/^of\|(t[ms]\d+):([A-Z]{2}):([a-z]+):flatrate:[A-Za-z0-9_]+$/);
+  if (!m || !isRegionId(m[2]) || !isProviderId(m[3])) return null;
+  return { titleId: m[1], country: m[2], provider: m[3] };
 }
 
 export function isTitleId(id: string): boolean {

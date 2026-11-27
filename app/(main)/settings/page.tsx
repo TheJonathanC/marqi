@@ -1,8 +1,24 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { saveLanguagesAction, setDiscoverAction, unhideTitleAction } from "@/app/actions";
+import {
+  saveLanguagesAction,
+  saveProvidersAction,
+  setDiscoverAction,
+  setRegionAction,
+  unhideTitleAction,
+} from "@/app/actions";
 import { LANGUAGES } from "@/lib/language";
 import { getProfile } from "@/lib/personal";
+import {
+  PROVIDERS,
+  PROVIDER_IDS,
+  REGIONS,
+  REGION_IDS,
+  inRegion,
+  providerList,
+  regionsFor,
+  resolveScope,
+} from "@/lib/providers";
 import { tmdbConfigured } from "@/lib/tmdb";
 
 export const metadata: Metadata = { title: "Settings" };
@@ -25,9 +41,70 @@ async function Settings() {
   const profile = await getProfile();
   if (!profile) return <div className="empty">Sign in to change settings.</div>;
   const chosen = new Set(profile.prefs.languages);
+  const scope = resolveScope(profile.prefs);
+  const here = REGIONS[scope.region];
+  // Nothing saved means every service, so show them all ticked.
+  const platforms = new Set(profile.prefs.providers.length ? profile.prefs.providers : PROVIDER_IDS);
 
   return (
     <div className="settings">
+      <section id="region">
+        <h2>Where you&apos;re watching</h2>
+        <p>
+          Listings, Watch tickets and links follow the region you pick here. Switch when you travel: everything you
+          watch, save and mark comes with you.
+        </p>
+        <form action={setRegionAction} className="region-switch">
+          {REGION_IDS.map((r) => (
+            <button key={r} type="submit" name="region" value={r} aria-pressed={scope.region === r}>
+              <strong>{REGIONS[r].short}</strong>
+              <small>
+                {REGIONS[r].providers.map((p) => (
+                  <span key={p} className="badge" data-p={p} title={PROVIDERS[p].name} />
+                ))}
+                {providerList(REGIONS[r].providers)}
+              </small>
+            </button>
+          ))}
+        </form>
+      </section>
+
+      <section>
+        <h2>Your platforms</h2>
+        <p>
+          Only titles on these services show up anywhere in Marqi, and only their Watch tickets appear. Leave
+          everything ticked to see them all.
+        </p>
+        <form action={saveProvidersAction}>
+          <div className="lang-grid">
+            {PROVIDER_IDS.map((p) => {
+              const missing = !inRegion(p, scope.region);
+              return (
+                <label key={p} className="lang-chip provider-chip" data-p={p}>
+                  <input type="checkbox" name="provider" value={p} defaultChecked={platforms.has(p)} />
+                  <span>
+                    {PROVIDERS[p].name}
+                    {missing && <small>{regionsFor(p).map((r) => REGIONS[r].short).join(", ")} only</small>}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+          {scope.unavailable.length > 0 && (
+            <p className="settings-note">
+              {providerList(scope.unavailable)} {scope.unavailable.length === 1 ? "isn't" : "aren't"} available in{" "}
+              {here.name}, so {scope.unavailable.length === 1 ? "it's" : "they're"} skipped while you&apos;re there
+              {scope.fallback
+                ? `. That leaves none of your platforms, so Marqi shows everything on ${providerList(scope.catalog.providers)} instead.`
+                : ". Your choice is kept for when you're back."}
+            </p>
+          )}
+          <button type="submit" className="tool-btn">
+            Save platforms
+          </button>
+        </form>
+      </section>
+
       <section>
         <h2>Languages you watch</h2>
         <p>

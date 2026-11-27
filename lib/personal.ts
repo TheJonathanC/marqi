@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import { cache } from "react";
 import { getGenres, getSimilar, getTitles } from "./catalog";
 import type { Kind, Title } from "./justwatch";
+import { resolveScope, type Scope } from "./providers";
 import { getViewer } from "./session";
 import { genreAffinity, interacted, pickSeeds, rankCandidates, unexploredGenres, visible, type Seed } from "./taste";
 import { loadProfile, type Profile } from "./watch";
@@ -21,6 +22,13 @@ export const getProfile = cache(async (): Promise<Profile | null> => {
 });
 
 export { visible };
+
+/**
+ * The region and services this request shows: the viewer's saved choice, or
+ * every service in India when signed out. Every catalog call takes
+ * `scope.catalog`.
+ */
+export const getScope = cache(async (): Promise<Scope> => resolveScope((await getProfile())?.prefs));
 
 export type Recommendations = {
   forYou: Title[];
@@ -42,10 +50,11 @@ export const getRecommendations = cache(async (profile: Profile, kind?: Kind): P
     : profile;
   const seeds = pickSeeds(seedSource, 5);
   if (seeds.length === 0) return { forYou: [], because: null };
+  const { catalog } = resolveScope(profile.prefs);
   const ofKind = (titles: Title[]) => (kind ? titles.filter((t) => t.kind === kind) : titles);
 
   const lists = await Promise.all(
-    seeds.map(async (seed) => ({ seed, titles: await getSimilar(seed.titleId).catch(() => [] as Title[]) })),
+    seeds.map(async (seed) => ({ seed, titles: await getSimilar(seed.titleId, catalog).catch(() => [] as Title[]) })),
   );
   const seen = interacted(profile);
   const forYou = markWatched(
@@ -75,9 +84,10 @@ export async function getDiscoveries(profile: Profile, rows = 2) {
     day,
   );
   const seen = interacted(profile);
+  const { catalog } = resolveScope(profile.prefs);
   return Promise.all(
     picks.map(async (id) => {
-      const page = await getTitles({ genre: id, sort: "imdb", minImdbVotes: 5_000, first: 40 });
+      const page = await getTitles({ ...catalog, genre: id, sort: "imdb", minImdbVotes: 5_000, first: 40 });
       return {
         genre: genres.find((g) => g.id === id)?.name ?? id,
         genreId: id,

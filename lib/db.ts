@@ -46,6 +46,9 @@ const SCHEMA = [
   )`,
   // Languages switched from "hide these" to "show only these"; excluded_languages is no longer read.
   `alter table user_prefs add column if not exists languages text[] not null default '{}'`,
+  // Where you're watching from, and which services to show (empty means all of them).
+  `alter table user_prefs add column if not exists region text`,
+  `alter table user_prefs add column if not exists providers text[] not null default '{}'`,
   `create table if not exists watchlist (
     user_id text not null references users(id) on delete cascade,
     title_id text not null,

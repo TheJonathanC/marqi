@@ -10,6 +10,7 @@ export function Ticket({ offer, titleId }: { offer: Offer; titleId: string }) {
       target="_blank"
       rel="noopener"
       className="ticket"
+      data-p={offer.provider}
       data-watch={titleId}
     >
       <span className="ticket-main">

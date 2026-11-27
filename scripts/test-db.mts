@@ -22,6 +22,9 @@ try {
   await w.upsertUser({ id: uid, login: "me", name: "Me", avatarUrl: null });
   await w.savePrefs(uid, { languages: ["en", "ml"] });
   await w.savePrefs(uid, { discover: true });
+  assert.deepEqual((await w.loadPrefs(uid)).region, "IN");
+  await w.savePrefs(uid, { region: "AE", providers: ["jhs", "nfx"] });
+  await w.savePrefs(uid, { region: "AE" });
   await w.addToList(uid, show);
   await w.hideTitle(uid, { id: "tm2", title: "Nope", genres: ["rma"] } as never);
   await w.recordClick(uid, {
@@ -38,7 +41,8 @@ try {
   await w.clearStatus(uid, "tm7");
 
   const p = await w.loadProfile(uid);
-  assert.deepEqual(p?.prefs, { languages: ["en", "ml"], discover: true });
+  assert.deepEqual(p?.prefs, { languages: ["en", "ml"], discover: true, region: "AE", providers: ["jhs", "nfx"] });
+  assert.deepEqual(await w.loadPrefs(uid), p?.prefs);
   assert.deepEqual(p?.watchlist.map((x) => x.genres), [["act", "scf"]]);
   assert.deepEqual(p?.hidden, [{ titleId: "tm2", title: "Nope", genres: ["rma"] }]);
   const byId = new Map(p?.history.map((h) => [h.titleId, h]));

@@ -2,8 +2,8 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { currentYear, getGenres, getTitles } from "@/lib/catalog";
 import type { Kind } from "@/lib/justwatch";
-import { forRow, getProfile, getRecommendations } from "@/lib/personal";
-import { PROVIDERS, PROVIDER_IDS } from "@/lib/providers";
+import { forRow, getProfile, getRecommendations, getScope } from "@/lib/personal";
+import { PROVIDERS } from "@/lib/providers";
 import { genreAffinity, unexploredGenres } from "@/lib/taste";
 import type { Profile } from "@/lib/watch";
 import { Row } from "./Cards";
@@ -42,15 +42,15 @@ export function KindPage({ kind }: { kind: Kind }) {
 
 async function Trays({ kind }: { kind: Kind }) {
   const copy = COPY[kind];
-  const year = await currentYear();
+  const [year, { catalog }] = await Promise.all([currentYear(), getScope()]);
   const [profile, genres, popular, trending, fresh, top, ...byProvider] = await Promise.all([
     getProfile(),
     getGenres(),
-    getTitles({ kind, first: 40 }),
-    getTitles({ kind, sort: "trending", first: 40 }),
-    getTitles({ kind, minYear: year - 1, first: 40 }),
-    getTitles({ kind, sort: "imdb", minImdbVotes: 25_000, first: 40 }),
-    ...PROVIDER_IDS.map((p) => getTitles({ kind, providers: [p], first: 40 })),
+    getTitles({ ...catalog, kind, first: 40 }),
+    getTitles({ ...catalog, kind, sort: "trending", first: 40 }),
+    getTitles({ ...catalog, kind, minYear: year - 1, first: 40 }),
+    getTitles({ ...catalog, kind, sort: "imdb", minImdbVotes: 25_000, first: 40 }),
+    ...catalog.providers.map((p) => getTitles({ ...catalog, kind, providers: [p], first: 40 })),
   ]);
 
   const trays = pickGenres(kind, profile, genres.map((g) => g.id));
@@ -59,7 +59,7 @@ async function Trays({ kind }: { kind: Kind }) {
       id,
       liked,
       name: genres.find((g) => g.id === id)?.name ?? id,
-      page: await getTitles({ kind, genre: id, first: 40 }),
+      page: await getTitles({ ...catalog, kind, genre: id, first: 40 }),
     })),
   );
 
@@ -79,9 +79,10 @@ async function Trays({ kind }: { kind: Kind }) {
           note={g.liked === "liked" ? "Because you like it" : g.liked === "new" ? "Off your beaten path" : undefined}
         />
       ))}
-      {PROVIDER_IDS.map((p, i) => (
+      {catalog.providers.map((p, i) => (
         <Row
           key={p}
+          provider={p}
           heading={`${copy.plural} at ${PROVIDERS[p].name}`}
           titles={forRow(byProvider[i].titles, profile)}
           href={`/browse?kind=${kind}&provider=${p}`}

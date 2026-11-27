@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { Grid } from "@/components/Cards";
 import { getTitles } from "@/lib/catalog";
 import type { Kind } from "@/lib/justwatch";
-import { getProfile, markWatched, visible } from "@/lib/personal";
+import { getProfile, getScope, markWatched, visible } from "@/lib/personal";
 
 export const metadata: Metadata = { title: "Mark what you've seen" };
 
@@ -30,9 +30,10 @@ async function Seen({ searchParams }: Pick<PageProps<"/seen">, "searchParams">) 
   const sort = sp.sort === "imdb" ? "imdb" : "popular";
   const after = typeof sp.after === "string" ? sp.after : undefined;
 
+  const { catalog } = await getScope();
   const [profile, page] = await Promise.all([
     getProfile(),
-    getTitles({ kind, sort, minImdbVotes: sort === "imdb" ? 50_000 : undefined, after, first: 42 }),
+    getTitles({ ...catalog, kind, sort, minImdbVotes: sort === "imdb" ? 50_000 : undefined, after, first: 42 }),
   ]);
   const titles = markWatched(visible(page.titles, profile), profile);
   const watched = profile?.history.filter((h) => h.status === "finished").length ?? 0;

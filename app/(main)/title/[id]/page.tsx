@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import {
@@ -17,12 +18,14 @@ import { Ticket } from "@/components/Ticket";
 import { TrailerButton, TrailerTicketBody } from "@/components/Trailer";
 import { getSimilar, getTitle } from "@/lib/catalog";
 import { isTitleId } from "@/lib/justwatch";
-import { forRow, getProfile } from "@/lib/personal";
+import { forRow, getProfile, getScope } from "@/lib/personal";
+import { REGIONS, REGION_IDS, providerList, resolveScope, type Scope } from "@/lib/providers";
 import { youtubeSearchUrl } from "@/lib/trailer";
 
 export async function generateMetadata({ params }: PageProps<"/title/[id]">) {
   const { id } = await params;
-  const title = isTitleId(id) ? await getTitle(id).catch(() => null) : null;
+  // The name is the same everywhere, so metadata reads the default (shared) entry.
+  const title = isTitleId(id) ? await getTitle(id, resolveScope(null).catalog).catch(() => null) : null;
   return { title: title?.title ?? "Title" };
 }
 
@@ -43,7 +46,8 @@ export default function TitlePage({ params, searchParams }: PageProps<"/title/[i
 async function Detail({ params, searchParams }: PageProps<"/title/[id]">) {
   const { id } = await params;
   if (!isTitleId(id)) notFound();
-  const title = await getTitle(id);
+  const scope = await getScope();
+  const title = await getTitle(id, scope.catalog);
   if (!title) notFound();
 
   const overview = title.extras?.overview || title.overview;
@@ -74,7 +78,14 @@ async function Detail({ params, searchParams }: PageProps<"/title/[id]">) {
             )}
           </div>
           {title.offers.length === 0 && (
-            <p className="unavailable">Not currently showing on Prime Video, JioHotstar or Apple TV in India.</p>
+            <>
+              <p className="unavailable">
+                Not currently showing on {providerList(scope.catalog.providers, "or")} in {REGIONS[scope.region].name}.
+              </p>
+              <Suspense fallback={null}>
+                <Elsewhere titleId={title.id} scope={scope} />
+              </Suspense>
+            </>
           )}
           <Suspense fallback={<div className="title-tools" />}>
             <PersonalTools titleId={title.id} />
@@ -161,7 +172,36 @@ async function PersonalTools({ titleId }: { titleId: string }) {
   );
 }
 
+/**
+ * For a title that isn't on your services here, where it is showing: say, a
+ * JioHotstar original looked up from Dubai is "On JioHotstar in India".
+ */
+async function Elsewhere({ titleId, scope }: { titleId: string; scope: Scope }) {
+  const profile = await getProfile();
+  const found = await Promise.all(
+    REGION_IDS.filter((r) => r !== scope.region).map(async (region) => {
+      const { catalog } = resolveScope({ region, providers: profile?.prefs.providers });
+      const there = await getTitle(titleId, catalog).catch(() => null);
+      return { region, providers: there?.offers.map((o) => o.provider) ?? [] };
+    }),
+  );
+  const hits = found.filter((f) => f.providers.length > 0);
+  if (hits.length === 0) return null;
+  return (
+    <p className="unavailable elsewhere">
+      {hits.map((h, i) => (
+        <span key={h.region}>
+          {i > 0 && " · "}On {providerList(h.providers)} in {REGIONS[h.region].name}
+        </span>
+      ))}
+      {" · "}
+      <Link href="/settings#region">Switch region</Link>
+    </p>
+  );
+}
+
 async function MoreLikeThis({ titleId }: { titleId: string }) {
-  const [similar, profile] = await Promise.all([getSimilar(titleId).catch(() => []), getProfile()]);
+  const { catalog } = await getScope();
+  const [similar, profile] = await Promise.all([getSimilar(titleId, catalog).catch(() => []), getProfile()]);
   return <Row heading="More Like This" titles={forRow(similar, profile)} />;
 }

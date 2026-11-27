@@ -51,3 +51,24 @@ test("search fallbacks are encoded", () => {
     "https://tv.apple.com/in/search?term=Ted%20Lasso%20%26%20Co",
   );
 });
+
+test("Netflix links keep the title and lose locale prefixes and tracking", () => {
+  assert.equal(
+    safeProviderUrl("nfx", "https://www.netflix.com/in-en/title/81772075?trackId=1&utm_source=jw"),
+    "https://www.netflix.com/title/81772075",
+  );
+  assert.equal(safeProviderUrl("nfx", "https://www.netflix.com/title/82058991", "AE"), "https://www.netflix.com/title/82058991");
+  assert.equal(safeProviderUrl("nfx", "https://netflix.evil.example/title/1"), null);
+  assert.equal(providerSearchUrl("nfx", "Dark"), "https://www.netflix.com/search?q=Dark");
+});
+
+test("in the UAE, Apple TV goes to /ae/, Prime stays on primevideo.com and JioHotstar is refused", () => {
+  assert.equal(
+    safeProviderUrl("atp", "https://tv.apple.com/in/movie/x/umc.cmc.9", "AE"),
+    "https://tv.apple.com/ae/movie/x/umc.cmc.9",
+  );
+  assert.ok(safeProviderUrl("prv", "https://app.primevideo.com/detail?gti=amzn1.dv.gti.abc", "AE"));
+  assert.equal(safeProviderUrl("prv", "https://www.amazon.in/gp/video/detail/B0X", "AE"), null);
+  assert.equal(safeProviderUrl("jhs", "https://www.hotstar.com/in/movies/x/123", "AE"), null);
+  assert.equal(providerSearchUrl("atp", "Dune", "AE"), "https://tv.apple.com/ae/search?term=Dune");
+});

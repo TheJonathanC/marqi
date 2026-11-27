@@ -4,9 +4,9 @@ import { Suspense } from "react";
 import { Grid } from "@/components/Cards";
 import { getGenres, getTitles } from "@/lib/catalog";
 import { languageName } from "@/lib/language";
-import { forRow, getProfile } from "@/lib/personal";
+import { forRow, getProfile, getScope } from "@/lib/personal";
 import type { Kind, Sort } from "@/lib/justwatch";
-import { PROVIDERS, PROVIDER_IDS, isProviderId, type ProviderId } from "@/lib/providers";
+import { PROVIDERS, REGIONS, isProviderId, type ProviderId } from "@/lib/providers";
 
 export const metadata: Metadata = { title: "Browse" };
 
@@ -57,7 +57,9 @@ export default function BrowsePage({ searchParams }: PageProps<"/browse">) {
     <>
       <div className="page-head">
         <h1>The Programme</h1>
-        <p>Everything on your subscriptions in India. No rentals, no add-on channels.</p>
+        <Suspense fallback={<p>Everything on your subscriptions. No rentals, no add-on channels.</p>}>
+          <BrowseIntro />
+        </Suspense>
       </div>
       <Suspense fallback={<div className="empty">Rolling the reel…</div>}>
         <Browse searchParams={searchParams} />
@@ -66,13 +68,23 @@ export default function BrowsePage({ searchParams }: PageProps<"/browse">) {
   );
 }
 
+async function BrowseIntro() {
+  const { region } = await getScope();
+  return <p>Everything on your subscriptions in {REGIONS[region].name}. No rentals, no add-on channels.</p>;
+}
+
 async function Browse({ searchParams }: Pick<PageProps<"/browse">, "searchParams">) {
-  const f = parse(await searchParams);
+  const { catalog } = await getScope();
+  const parsed = parse(await searchParams);
+  // A service you haven't chosen, or one that isn't in this region (JioHotstar
+  // in the UAE), falls back to all of yours.
+  const f = parsed.provider && !catalog.providers.includes(parsed.provider) ? { ...parsed, provider: undefined } : parsed;
   const [genres, profile, page] = await Promise.all([
     getGenres(),
     getProfile(),
     getTitles({
-      providers: f.provider ? [f.provider] : undefined,
+      ...catalog,
+      providers: f.provider ? [f.provider] : catalog.providers,
       kind: f.kind,
       genre: f.genre,
       minImdbScore: f.imdb,
@@ -86,8 +98,15 @@ async function Browse({ searchParams }: Pick<PageProps<"/browse">, "searchParams
   const filtered = page.titles.length - titles.length;
   const languages = profile?.prefs.languages ?? [];
 
-  const pill = (label: string, active: boolean, to: string) => (
-    <Link key={label} href={to} className="pill" aria-current={active ? "true" : undefined} scroll={false}>
+  const pill = (label: string, active: boolean, to: string, provider?: ProviderId) => (
+    <Link
+      key={label}
+      href={to}
+      className="pill"
+      data-p={provider}
+      aria-current={active ? "true" : undefined}
+      scroll={false}
+    >
       {label}
     </Link>
   );
@@ -98,7 +117,7 @@ async function Browse({ searchParams }: Pick<PageProps<"/browse">, "searchParams
         <div className="filter-group">
           <span>Service</span>
           {pill("All", !f.provider, href(f, { provider: undefined }))}
-          {PROVIDER_IDS.map((p) => pill(PROVIDERS[p].name, f.provider === p, href(f, { provider: p })))}
+          {catalog.providers.map((p) => pill(PROVIDERS[p].name, f.provider === p, href(f, { provider: p }), p))}
         </div>
         <div className="filter-group">
           <span>Type</span>
