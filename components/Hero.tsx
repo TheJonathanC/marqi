@@ -37,11 +37,3 @@ export function Banners({ features }: { features: Feature[] }) {
     </Carousel>
   );
 }
-
-export function BannerSkeleton() {
-  return (
-    <section className="banners" aria-hidden>
-      <div className="hero" />
-    </section>
-  );
-}

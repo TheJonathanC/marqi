@@ -6,11 +6,12 @@ import { Banners, type Feature } from "./Hero";
 /** Banners: picks for you first (unless in Discover mode), then trending titles that rate well. */
 export async function Featured({ kind }: { kind?: Kind }) {
   const [profile, { catalog }] = await Promise.all([getProfile(), getScope()]);
-  const [trending, acclaimed] = await Promise.all([
+  // Recommendations load alongside the lists rather than after them.
+  const [trending, acclaimed, recs] = await Promise.all([
     getTitles({ ...catalog, kind, sort: "trending", first: 40 }),
     getTitles({ ...catalog, kind, sort: "popular", minImdbScore: 7.5, minImdbVotes: 5_000, first: 40 }),
+    profile && !profile.prefs.discover ? getRecommendations(profile, kind).then((r) => r.forYou) : [],
   ]);
-  const recs = profile && !profile.prefs.discover ? (await getRecommendations(profile, kind)).forYou : [];
 
   const features: Feature[] = [];
   const add = (titles: Title[], eyebrow: (t: Title) => string, max: number) => {

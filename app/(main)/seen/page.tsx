@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { GridSkeleton } from "@/components/RowsSkeleton";
 import { Grid } from "@/components/Cards";
 import { getTitles } from "@/lib/catalog";
 import type { Kind } from "@/lib/justwatch";
@@ -17,7 +18,7 @@ export default function SeenPage({ searchParams }: PageProps<"/seen">) {
         <h1>Mark what you&apos;ve seen</h1>
         <p>Press ✓ on anything you&apos;ve already watched. It sharpens For You and keeps those titles out of it.</p>
       </div>
-      <Suspense fallback={<div className="empty">Rolling the reel…</div>}>
+      <Suspense fallback={<GridSkeleton filters={2} />}>
         <Seen searchParams={searchParams} />
       </Suspense>
     </>

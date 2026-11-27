@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { GridSkeleton } from "@/components/RowsSkeleton";
 import { Grid } from "@/components/Cards";
 import { getProfile, markWatched } from "@/lib/personal";
 
@@ -12,7 +13,7 @@ export default function ListPage() {
         <h1>My List</h1>
         <p>Saved for later. Add titles with “+ My List” on any title page.</p>
       </div>
-      <Suspense fallback={<div className="empty">Fetching your list…</div>}>
+      <Suspense fallback={<GridSkeleton count={7} />}>
         <List />
       </Suspense>
     </>

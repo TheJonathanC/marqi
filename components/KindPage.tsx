@@ -8,8 +8,7 @@ import { genreAffinity, unexploredGenres } from "@/lib/taste";
 import type { Profile } from "@/lib/watch";
 import { Row } from "./Cards";
 import { Featured } from "./Featured";
-import { BannerSkeleton } from "./Hero";
-import { RowsSkeleton } from "./RowsSkeleton";
+import { BannerSkeleton, RowsSkeleton } from "./RowsSkeleton";
 
 // Films and Series: a home page of trays for one kind of title.
 
@@ -32,7 +31,7 @@ export function KindPage({ kind }: { kind: Kind }) {
         <Featured kind={kind} />
       </Suspense>
       <div className="rows">
-        <Suspense fallback={<RowsSkeleton />}>
+        <Suspense fallback={<RowsSkeleton rows={3} />}>
           <Trays kind={kind} />
         </Suspense>
       </div>

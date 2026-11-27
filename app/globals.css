@@ -139,6 +139,26 @@ main { flex: 1; }
 .search input::placeholder { color: var(--cream-faint); }
 .search-short { display: none; }
 .search input:focus { outline: none; border-color: var(--gold); }
+.suggest {
+  position: absolute; top: calc(100% + 0.375rem); right: 0; z-index: 60;
+  width: max(100%, min(26rem, calc(100vw - 2 * var(--gutter))));
+  list-style: none; margin: 0; padding: 0.375rem;
+  background: var(--bg-raised); border: 1px solid var(--line); border-radius: 0.5rem;
+  box-shadow: 0 0.75rem 2rem #000a;
+}
+.suggest[hidden] { display: none; }
+.suggest li {
+  display: flex; align-items: center; gap: 0.75rem; padding: 0.375rem 0.5rem;
+  border-radius: 0.3125rem; cursor: pointer;
+}
+.suggest li[aria-selected="true"] { background: #2a241e; box-shadow: inset 2px 0 0 var(--gold); }
+.suggest-art { flex: none; width: 2.25rem; aspect-ratio: 2 / 3; border-radius: 0.1875rem; overflow: hidden; background: var(--bg-sunk); }
+.suggest-art img { width: 100%; height: 100%; object-fit: cover; }
+.suggest-text { display: grid; gap: 0.125rem; min-width: 0; }
+.suggest-title { font-size: 0.875rem; color: var(--cream); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.suggest-title mark { background: none; color: var(--gold); font-weight: 600; }
+.suggest-sub { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: var(--cream-faint); }
+.suggest-all { justify-content: center; font-size: 0.8125rem; color: var(--gold); border-top: 1px solid var(--line); margin-top: 0.25rem; border-radius: 0 0 0.3125rem 0.3125rem; min-height: 2.5rem; }
 .search kbd {
   position: absolute; right: 0.625rem; top: 50%; translate: 0 -50%;
   font: 0.6875rem var(--font-body); color: var(--cream-faint);
@@ -246,23 +266,53 @@ a.imdb:hover { text-decoration: underline; text-underline-offset: 0.1875rem; }
 
 .ticket {
   --notch: 0.4375rem;
+  --punch: 0.25rem;
+  --ticket-bg: var(--velvet);
+  --ticket-hover: #8f262c;
   display: inline-flex; align-items: stretch;
-  background: var(--velvet);
   color: var(--cream);
   border-radius: 0.25rem;
-  /* Notched ticket edges via mask: no extra elements, no images. */
-  mask:
-    radial-gradient(circle at 0 50%, transparent var(--notch), #000 calc(var(--notch) + 0.5px)) left / 51% 100% no-repeat,
-    radial-gradient(circle at 100% 50%, transparent var(--notch), #000 calc(var(--notch) + 0.5px)) right / 51% 100% no-repeat;
-  transition: background-color 0.15s;
+  -webkit-tap-highlight-color: transparent;
 }
-.ticket:hover { background: #8f262c; }
-.ticket:focus-visible { outline: none; background: #8f262c; box-shadow: inset 0 0 0 0.125rem var(--gold); }
+.ticket:focus-visible { outline: 0.125rem solid var(--gold); outline-offset: 0.1875rem; }
+/* Two halves, each its own piece of card, so the ticket can tear along the
+   perforation. Each half has a notch on its outer edge and half-punches at
+   the corners by the tear line. Masks only: no images, no extra elements. */
+.ticket-main, .ticket-stub {
+  background: var(--ticket-bg);
+  transition: background-color 0.15s, transform 0.7s linear(0, 0.38 9%, 0.84 19%, 1.06 28%, 1.1 34%, 1.04 45%, 0.99 57%, 1.01 72%, 1);
+  mask-composite: intersect;
+  -webkit-mask-composite: source-in;
+  mask-repeat: no-repeat;
+}
+.ticket-main {
+  transform-origin: 100% 100%;
+  mask-image:
+    radial-gradient(circle at 0 50%, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
+    radial-gradient(circle at 100% 0, transparent var(--punch), #000 calc(var(--punch) + 0.5px)),
+    radial-gradient(circle at 100% 100%, transparent var(--punch), #000 calc(var(--punch) + 0.5px));
+}
+.ticket-stub {
+  transform-origin: 0 100%;
+  mask-image:
+    radial-gradient(circle at 100% 50%, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
+    radial-gradient(circle at 0 0, transparent var(--punch), #000 calc(var(--punch) + 0.5px)),
+    radial-gradient(circle at 0 100%, transparent var(--punch), #000 calc(var(--punch) + 0.5px));
+}
+.ticket:hover > span, .ticket:focus-visible > span { background: var(--ticket-hover); }
+/* Torn on click (see LauncherScripts): the halves hinge apart from the bottom
+   of the perforation, then mend. */
+.ticket[data-torn] .ticket-main { transform: rotate(-6deg); }
+.ticket[data-torn] .ticket-stub { transform: rotate(10deg); transition-duration: 0.9s; }
+@media (prefers-reduced-motion: reduce) { .ticket[data-torn] > span { transform: none; } }
 /* Watch tickets in the service's colours, so Netflix, Prime, JioHotstar and Apple TV read apart at a glance. */
-.ticket[data-p] { background: var(--provider-deep); box-shadow: inset 0.25rem 0 0 var(--provider); }
-.ticket[data-p]:hover { background: color-mix(in oklab, var(--provider-deep) 82%, white); }
-.ticket[data-p]:focus-visible { background: color-mix(in oklab, var(--provider-deep) 82%, white); box-shadow: inset 0.25rem 0 0 var(--provider), inset 0 0 0 0.125rem var(--gold); }
-.ticket[data-p="atp"] { box-shadow: inset 0.25rem 0 0 var(--provider), inset 0 0 0 1px #e8e8ed55; }
+.ticket[data-p] {
+  --ticket-bg: var(--provider-deep);
+  --ticket-hover: color-mix(in oklab, var(--provider-deep) 82%, white);
+}
+.ticket[data-p] .ticket-main { box-shadow: inset 0.25rem 0 0 var(--provider); }
+.ticket[data-p="atp"] > span { box-shadow: inset 0 0 0 1px #e8e8ed55; }
+.ticket[data-p="atp"] .ticket-main { box-shadow: inset 0.25rem 0 0 var(--provider), inset 0 0 0 1px #e8e8ed55; }
 .ticket-main {
   padding: 0.625rem 1.125rem 0.625rem 1.375rem;
   font-weight: 600; letter-spacing: 0.02em;
@@ -416,12 +466,29 @@ a.imdb:hover { text-decoration: underline; text-underline-offset: 0.1875rem; }
 }
 .cw-tools button:hover { color: var(--gold); border-color: var(--gold); }
 
-.skeleton-rows { display: grid; gap: 2.25rem; }
-.skeleton-row { display: flex; gap: 0.875rem; padding: 2.5rem var(--gutter) 0; overflow: hidden; }
-.skeleton-row div {
-  flex: none; width: var(--card-w); aspect-ratio: 2 / 3;
-  border-radius: var(--radius); background: var(--bg-raised);
+/* ---------- Skeletons ---------- */
+
+/* One light sweep shared by every placeholder (background-attachment: fixed
+   lines the sweep up across all of them). Off under reduced motion. */
+.sk {
+  display: block; border-radius: 0.25rem; max-width: 100%;
+  background: linear-gradient(100deg, var(--bg-raised) 40%, #26211c 50%, var(--bg-raised) 60%) fixed;
+  background-size: 200vw 100%;
+  animation: sk-sweep 1.6s linear infinite;
 }
+@keyframes sk-sweep { from { background-position: 100vw 0; } to { background-position: -100vw 0; } }
+.sk-pill { border-radius: 999px; }
+.sk-ticket { border-radius: 0.25rem; }
+.sk-art { background: var(--bg-raised); }
+.sk-card { display: grid; gap: 0.5rem; align-content: start; }
+.sk-poster { aspect-ratio: 2 / 3; border-radius: var(--radius); }
+.sk-head { padding: 0 var(--gutter); margin-bottom: 0.75rem; }
+.sk-hero-body { display: grid; gap: 0.75rem; justify-items: start; width: 100%; }
+.sk-hero-body .actions { margin-top: 0.5rem; }
+.sk-lines { display: grid; gap: 0.4375rem; width: 100%; margin: 0.25rem 0 0.75rem; }
+.skeleton-rows { display: grid; gap: 2.25rem; padding-top: 0.5rem; }
+.skeleton-row { display: grid; grid-auto-flow: column; grid-auto-columns: var(--card-w); gap: 0.875rem; padding: 0.375rem var(--gutter) 0; overflow: hidden; }
+.settings .sk-lines { max-width: 40rem; }
 
 /* ---------- For You / Discover ---------- */
 
@@ -516,8 +583,10 @@ a.imdb:hover { text-decoration: underline; text-underline-offset: 0.1875rem; }
 /* ---------- Trailer ---------- */
 
 /* A paper ticket beside the velvet Watch tickets: clearly an action, clearly secondary. */
-.ticket.ticket-trailer { background: var(--cream); color: var(--bg); border: none; cursor: pointer; font: inherit; text-align: left; }
-.ticket.ticket-trailer:hover, .ticket.ticket-trailer:focus-visible { background: #fff6e2; }
+.ticket.ticket-trailer {
+  --ticket-bg: var(--cream); --ticket-hover: #fff6e2;
+  background: none; padding: 0; color: var(--bg); border: none; cursor: pointer; font: inherit; text-align: left;
+}
 .ticket-trailer .ticket-main small { color: #0f0d0b99; }
 .ticket-trailer .ticket-stub { border-left-color: #0f0d0b40; color: var(--velvet); font-size: 0.875rem; }
 .trailer-dialog {

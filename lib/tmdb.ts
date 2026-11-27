@@ -83,7 +83,7 @@ export async function getTmdbExtras(kind: Kind, tmdbId: string): Promise<TmdbExt
 /** A TMDB collection's films, with release dates. */
 export async function getTmdbCollection(id: string): Promise<TmdbCollection | null> {
   "use cache: remote";
-  cacheLife("days");
+  cacheLife("archive");
   const data = await tmdb<{
     name?: string;
     parts?: { id: number; title?: string; release_date?: string; poster_path?: string | null }[];
@@ -103,7 +103,7 @@ export async function getTmdbCollection(id: string): Promise<TmdbCollection | nu
 /** Episode stills and ratings for one season, keyed by episode number. */
 export async function getTmdbSeason(tmdbId: string, season: number): Promise<Record<number, TmdbEpisode> | null> {
   "use cache: remote";
-  cacheLife("days");
+  cacheLife("archive");
   const data = await tmdb<{
     episodes?: { episode_number: number; still_path: string | null; vote_average: number; vote_count: number }[];
   }>(`/tv/${tmdbId}/season/${season}`, { language: "en-IN" });

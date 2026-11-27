@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { getProfile } from "@/lib/personal";
+import { SearchBox } from "./SearchBox";
 import { REGIONS, resolveScope } from "@/lib/providers";
 import { getViewer } from "@/lib/session";
 
@@ -21,12 +22,7 @@ export function Header() {
         <label htmlFor="q" className="visually-hidden">
           Search titles
         </label>
-        <input id="q" name="q" type="search" placeholder="Search the programme…" autoComplete="off" />
-        {/* Phones show this shorter placeholder instead; it hides once you type. */}
-        <span className="search-short" aria-hidden>
-          Search…
-        </span>
-        <kbd>/</kbd>
+        <SearchBox />
       </form>
       <Suspense fallback={<div className="user-skeleton" />}>
         <UserMenu />

@@ -4,8 +4,7 @@ import { setDiscoverAction } from "@/app/actions";
 import { Row, type CardTitle } from "@/components/Cards";
 import { ContinueWatching } from "@/components/ContinueWatching";
 import { Featured } from "@/components/Featured";
-import { BannerSkeleton } from "@/components/Hero";
-import { RowsSkeleton } from "@/components/RowsSkeleton";
+import { BannerSkeleton, RowsSkeleton } from "@/components/RowsSkeleton";
 import { getTitles } from "@/lib/catalog";
 import { languageName } from "@/lib/language";
 import { forRow, getDiscoveries, getProfile, getRecommendations, getScope, markWatched, visible } from "@/lib/personal";
@@ -19,7 +18,7 @@ export default function Home() {
         <Featured />
       </Suspense>
       <div className="rows">
-        <Suspense fallback={<RowsSkeleton />}>
+        <Suspense fallback={<RowsSkeleton rows={3} />}>
           <HomeRows />
         </Suspense>
       </div>

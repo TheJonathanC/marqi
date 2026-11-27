@@ -20,6 +20,11 @@ export function posterSet(template: string): ImageSet {
   };
 }
 
+/** A small poster for lists like search suggestions (2x for a ~3rem-wide thumbnail). */
+export function posterThumb(template: string): string {
+  return jw(template, 166);
+}
+
 export function backdropSet(template: string): ImageSet {
   return {
     src: jw(template, 1440),

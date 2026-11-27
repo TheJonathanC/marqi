@@ -1,15 +1,28 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { GridSkeleton } from "@/components/RowsSkeleton";
 import { Grid } from "@/components/Cards";
 import { getTitles } from "@/lib/catalog";
 import { getProfile, getScope, markWatched, visible } from "@/lib/personal";
 import { REGIONS, providerList } from "@/lib/providers";
 
+/** Heading and grid placeholders while results load. */
+function SearchSkeleton() {
+  return (
+    <>
+      <div className="page-head" aria-hidden>
+        <span className="sk" style={{ width: "14rem", height: "2.25rem" }} />
+      </div>
+      <GridSkeleton />
+    </>
+  );
+}
+
 export const metadata: Metadata = { title: "Search" };
 
 export default function SearchPage({ searchParams }: PageProps<"/search">) {
   return (
-    <Suspense fallback={<div className="empty">Searching the archive…</div>}>
+    <Suspense fallback={<SearchSkeleton />}>
       <Results searchParams={searchParams} />
     </Suspense>
   );

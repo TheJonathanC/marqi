@@ -13,6 +13,7 @@ import {
 import { Backdrop } from "@/components/Art";
 import { Row } from "@/components/Cards";
 import { Franchise } from "@/components/Franchise";
+import { RowsSkeleton, TitleSkeleton } from "@/components/RowsSkeleton";
 import { Meta } from "@/components/Meta";
 import { Seasons } from "@/components/Seasons";
 import { Ticket } from "@/components/Ticket";
@@ -32,13 +33,7 @@ export async function generateMetadata({ params }: PageProps<"/title/[id]">) {
 
 export default function TitlePage({ params, searchParams }: PageProps<"/title/[id]">) {
   return (
-    <Suspense
-      fallback={
-        <div className="detail">
-          <div className="hero" />
-        </div>
-      }
-    >
+    <Suspense fallback={<TitleSkeleton />}>
       <Detail params={params} searchParams={searchParams} />
     </Suspense>
   );
@@ -106,7 +101,7 @@ async function Detail({ params, searchParams }: PageProps<"/title/[id]">) {
       )}
 
       {title.kind === "show" && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<RowsSkeleton rows={1} />}>
           <Seasons titleId={title.id} tmdbId={title.tmdbId} seasons={title.seasonList} searchParams={searchParams} />
         </Suspense>
       )}
@@ -136,7 +131,7 @@ async function Detail({ params, searchParams }: PageProps<"/title/[id]">) {
       )}
 
       <div className="rows">
-        <Suspense fallback={null}>
+        <Suspense fallback={<RowsSkeleton rows={1} />}>
           <MoreLikeThis titleId={title.id} />
         </Suspense>
       </div>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { GridSkeleton } from "@/components/RowsSkeleton";
 import { Grid } from "@/components/Cards";
 import { getGenres, getTitles } from "@/lib/catalog";
 import { languageName } from "@/lib/language";
@@ -61,7 +62,7 @@ export default function BrowsePage({ searchParams }: PageProps<"/browse">) {
           <BrowseIntro />
         </Suspense>
       </div>
-      <Suspense fallback={<div className="empty">Rolling the reel…</div>}>
+      <Suspense fallback={<GridSkeleton filters={5} />}>
         <Browse searchParams={searchParams} />
       </Suspense>
     </>

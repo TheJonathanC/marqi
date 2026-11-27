@@ -35,7 +35,7 @@ async function withLanguages<T extends Title>(titles: T[]): Promise<T[]> {
 
 export async function getTitles(q: TitleQuery) {
   "use cache: remote";
-  cacheLife("hours");
+  cacheLife("catalog");
   cacheTag("catalog");
   const page = await fetchTitles(q);
   return { ...page, titles: await withLanguages(page.titles) };
@@ -43,7 +43,7 @@ export async function getTitles(q: TitleQuery) {
 
 export async function getTitle(id: string, scope: CatalogScope) {
   "use cache: remote";
-  cacheLife("hours");
+  cacheLife("catalog");
   cacheTag("catalog", `title:${id}`);
   const title = await fetchTitle(id, scope);
   if (!title) return null;
@@ -58,7 +58,7 @@ export async function getEpisodes(
   seasonNumber: number,
 ): Promise<(Episode & Partial<TmdbEpisode>)[]> {
   "use cache: remote";
-  cacheLife("days");
+  cacheLife("archive");
   cacheTag("catalog", `season:${seasonId}`);
   const [episodes, extras] = await Promise.all([
     fetchEpisodes(seasonId),
@@ -69,9 +69,18 @@ export async function getEpisodes(
 
 export async function getSimilar(id: string, scope: CatalogScope) {
   "use cache: remote";
-  cacheLife("days");
+  cacheLife("archive");
   cacheTag("catalog");
   return withLanguages(await fetchSimilar(id, scope));
+}
+
+/** Search-as-you-type: the top matches on the scope's services, cached per query. */
+export async function getSuggestions(query: string, scope: CatalogScope) {
+  "use cache: remote";
+  cacheLife("catalog");
+  cacheTag("catalog");
+  const page = await fetchTitles({ ...scope, search: query, first: 12 });
+  return withLanguages(page.titles);
 }
 
 /** Short-lived lookup used at click time, so a title that left a service is caught. */
@@ -83,7 +92,7 @@ export async function getFreshOffers(id: string, scope: CatalogScope) {
 
 export async function getGenres() {
   "use cache: remote";
-  cacheLife("days");
+  cacheLife("archive");
   return fetchGenres();
 }
 
@@ -116,7 +125,7 @@ export async function getFranchise(
   scope: CatalogScope,
 ): Promise<Franchise | null> {
   "use cache: remote";
-  cacheLife("days");
+  cacheLife("archive");
   cacheTag("catalog");
   const saga = sagaFor(tmdbId);
   const collection = saga || !collectionId ? null : await getTmdbCollection(collectionId);

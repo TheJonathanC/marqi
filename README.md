@@ -21,6 +21,9 @@ Marqi is the first layer: you pick a title here, and Marqi sends you to the righ
 - **For You.** Recommendations from what you watch and save, plus "Because you watched…" and "More like this".
 - **Discover mode.** Switch off recommendations and already-seen titles to surface well-rated titles in genres you don't usually watch. "Not interested" hides any title for good.
 - **Every screen.** Phones get a two-row header, a stacked hero, swipeable filters and thumb-sized buttons. Tablets and laptops get the full bar. Past 1080p the whole layout scales with the screen, so a 4K TV shows the same page at twice the size, and D-pad TV browsers go bigger still.
+- **Search as you type.** The header search suggests titles (with posters, year and services) after two letters, ranked so titles that start with what you typed come first. Arrow keys and Enter pick one, Escape closes the list, and "See all results" opens the full search. Results are cached per query on the server and in the tab.
+- **Tearing tickets.** Watch and trailer tickets tear along their perforation when pressed, then mend. Plain CSS plus a few lines in the shared script, no animation library.
+- **Loading.** Catalog data is refreshed in the background hourly but served from cache for up to two weeks, so the first visit after a quiet spell is as fast as any other. Every page streams in behind skeletons shaped like its content, and going back to a page you just left is instant.
 - **Fast on weak hardware.** Server-rendered, aggressively cached, about 2 KB of Marqi's own client JS, plain `<img>` straight from the image CDNs.
 
 ## How it works

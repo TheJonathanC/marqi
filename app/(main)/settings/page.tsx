@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { SettingsSkeleton } from "@/components/RowsSkeleton";
 import {
   saveLanguagesAction,
   saveProvidersAction,
@@ -30,7 +31,7 @@ export default function SettingsPage() {
         <h1>Settings</h1>
         <p>Tune what shows up across Marqi.</p>
       </div>
-      <Suspense fallback={<div className="empty">Loading…</div>}>
+      <Suspense fallback={<SettingsSkeleton />}>
         <Settings />
       </Suspense>
     </>

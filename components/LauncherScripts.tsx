@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { reportReturn, setWatchedAction } from "@/app/actions";
 
 const ARROWS = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"];
+const MEND_MS = 1800;
 
 // Marqi's shared client script, attached once at the layout:
 //  1. Dwell timer: after a Watch click, time how long this tab stays hidden
@@ -11,6 +12,7 @@ const ARROWS = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"];
 //  2. Keyboard: "/" to search, arrow keys to move between cards and rows,
 //     and on TV remotes (no pointer) between everything on the page.
 //  3. The ✓ watched toggle on poster cards (flips instantly, then saves).
+//  4. Tickets tear along their perforation when pressed, then mend.
 
 export function LauncherScripts() {
   useEffect(() => {
@@ -19,6 +21,17 @@ export function LauncherScripts() {
     const dpad = matchMedia("(pointer: none)");
     let pending: string | null = null;
     let hiddenAt: number | null = null;
+    const mending = new WeakMap<HTMLElement, ReturnType<typeof setTimeout>>();
+
+    /** Tear a ticket open (CSS does the motion) and mend it a moment later. */
+    function tear(ticket: HTMLElement) {
+      clearTimeout(mending.get(ticket));
+      ticket.dataset.torn = "";
+      mending.set(
+        ticket,
+        setTimeout(() => delete ticket.dataset.torn, MEND_MS),
+      );
+    }
 
     function onClick(e: MouseEvent) {
       const seen = (e.target as Element).closest<HTMLButtonElement>("[data-seen]");
@@ -28,6 +41,8 @@ export function LauncherScripts() {
         setWatchedAction(seen.dataset.seen!, next).catch(() => seen.setAttribute("aria-pressed", String(!next)));
         return;
       }
+      const ticket = (e.target as Element).closest<HTMLElement>(".ticket");
+      if (ticket && (e.type === "click" || e.button === 1)) tear(ticket);
       const link = (e.target as Element).closest<HTMLElement>("[data-watch]");
       if (!link) return;
       pending = link.dataset.watch ?? null;
